@@ -100,8 +100,8 @@ RUSH uses AI to:
 ### 1. Run it
 
 ```bash
-git clone https://github.com/PalaashBatra/ruralpath-optimizer.git
-cd ruralpath-optimizer
+git clone https://github.com/PalaashBatra/RUSH.git
+cd RUSH
 python3 run.py
 ```
 
@@ -127,6 +127,16 @@ cp .env.example .env
 ```
 
 Without an API key, triage uses keyword matching and the UI flags every result as "check urgency by hand".
+
+### 3. Using the website
+
+The black bar at the top always tells you the one thing to do next. Follow it.
+
+1. **Paste the doctor's notes and the clinic postal code, then hit Find hospital.** No notes? Click one of the example chips (or press F1/F2/F3).
+2. **Read the big hospital name. If the bar says "check first", make sure the urgency is right. Then hit Send referral.** Want to see how it decided? Open "Show the map and how every hospital scored".
+3. **Done.** Copy or print the receipt, then hit **Next patient**.
+
+`Ctrl + Enter` always presses the big green button. The "Hospital capacity (live)" drawer at the bottom shows how full each hospital is; its **Demo: make a hospital busy** button fills one up so you can watch the match change live.
 
 ## Example Use Cases
 
@@ -203,7 +213,7 @@ POST /triage
 ## Project Structure
 
 ```
-ruralpath-optimizer/
+RUSH/
 ├── app/
 │   ├── main.py                    # FastAPI application and endpoints
 │   ├── models/
