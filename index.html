@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RUSH: Referral Upkeep System for Healthcare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ffffff;
+  --band:#f1f4f2;
+  --ink:#17201c;
+  --ink-2:#4a5752;
+  --rule:#d4dbd7;
+  --green:#00653a;
+  --green-dk:#004b2b;
+  --green-tint:#e4f0e9;
+  --blue:#1d5aa8;
+  --blue-tint:#e6eef8;
+  --red:#c8102e;
+  --red-tint:#fbe8eb;
+  --yellow:#f6be00;
+  --yellow-tint:#fff6d6;
+  --sans:"Overpass","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ol,ul,dl,dd,figure{margin:0}
+ol,ul{padding:0;list-style:none}
+a{color:var(--blue);text-underline-offset:3px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* ---------- header ---------- */
+.site-head{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--rule)}
+.head-row{display:flex;align-items:center;gap:28px;min-height:68px;padding:0 32px}
+.brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
+.hsign{display:grid;place-items:center;width:38px;height:38px;border-radius:5px;background:var(--blue);color:#fff;font-weight:800;font-size:24px;line-height:1;padding-top:3px;box-shadow:inset 0 0 0 2px var(--blue),inset 0 0 0 4px #fff}
+.brand b{display:block;font-size:21px;font-weight:800;line-height:1.1}
+.brand small{display:block;font-size:13px;color:var(--ink-2);line-height:1.2}
+.head-nav{display:flex;gap:22px;margin-left:auto}
+.head-nav a{color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
+.head-nav a:hover{color:var(--green);text-decoration:underline}
+.conn{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:6px 12px;border-radius:99px;background:var(--band);white-space:nowrap}
+.conn::before{content:"";width:10px;height:10px;border-radius:50%;background:#9aa6a1}
+.conn.ok{background:var(--green-tint);color:var(--green-dk)}
+.conn.ok::before{background:var(--green)}
+.conn.off{background:var(--yellow-tint);color:#5c4500}
+.conn.off::before{background:var(--yellow);box-shadow:0 0 0 2px #5c4500 inset}
+
+.practice{background:var(--yellow-tint);border-bottom:1px solid #ecd27a}
+.practice .wrap{display:flex;align-items:center;gap:14px;padding-top:12px;padding-bottom:12px;font-size:15px}
+.warnsign{flex:none;width:26px;height:26px;display:grid;place-items:center;position:relative;font-weight:800;font-size:15px;color:var(--ink)}
+.warnsign::before{content:"";position:absolute;inset:3px;background:var(--yellow);transform:rotate(45deg);border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.warnsign span{position:relative;padding-top:2px}
+
+/* ---------- intro + stepper ---------- */
+.intro{padding-top:44px;padding-bottom:30px}
+.intro h1{font-size:40px;line-height:1.12;font-weight:800;letter-spacing:-.01em;max-width:22ch}
+.intro p{margin-top:12px;max-width:62ch;color:var(--ink-2);font-size:18px}
+.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px;counter-reset:s}
+.stepper li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:6px;background:var(--band);color:var(--ink-2);font-weight:600;font-size:15px;line-height:1.25}
+.stepper li a{color:inherit;text-decoration:none}
+.stepper .sn{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:4px;background:#fff;color:var(--ink-2);font-weight:800;padding-top:2px;border:1.5px solid var(--rule)}
+.stepper li.now{background:var(--green);color:#fff;box-shadow:inset 0 0 0 2px var(--green),inset 0 0 0 4px #fff}
+.stepper li.now .sn{background:#fff;color:var(--green);border-color:#fff}
+.stepper li.done{color:var(--green-dk);background:var(--green-tint)}
+.stepper li.done .sn{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ---------- steps ---------- */
+.step{padding:40px 0 44px;border-top:1px solid var(--rule)}
+.step:nth-of-type(even){background:var(--band)}
+.step-head{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:start;margin-bottom:24px}
+.badge{grid-row:span 2;width:52px;height:52px;display:grid;place-items:center;border-radius:6px;background:var(--green);color:#fff;font-size:28px;font-weight:800;padding-top:4px;box-shadow:inset 0 0 0 2px var(--green),inset 0 0 0 4px #fff}
+.step.locked .badge{background:#9aa6a1;box-shadow:inset 0 0 0 2px #9aa6a1,inset 0 0 0 4px #fff}
+.step-head h2{font-size:28px;line-height:1.2;font-weight:800}
+.step-head p{color:var(--ink-2);max-width:64ch}
+.placeholder{padding:26px;border:2px dashed var(--rule);border-radius:6px;color:var(--ink-2);background:var(--paper)}
+
+/* step 1 */
+.examples{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:22px}
+.examples > span{font-weight:600;margin-right:4px}
+.ex{display:inline-flex;align-items:center;gap:10px;padding:8px 14px 7px;border:1.5px solid var(--rule);border-radius:4px;background:var(--paper);font-weight:600;font-size:15px;transition:border-color .15s,background .15s}
+.ex:hover{border-color:var(--green);background:var(--green-tint)}
+.ex kbd{font:600 12px/1 var(--mono);padding:3px 5px;border-radius:3px;background:var(--band);border:1px solid var(--rule);color:var(--ink-2)}
+.ex[aria-pressed=true]{border-color:var(--green);background:var(--green-tint)}
+.form{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px 28px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.flabel{font-weight:600}
+.field .help{font-size:14px;color:var(--ink-2)}
+.field .help.warn{color:#7a5700}
+.field .err{font-size:14px;color:var(--red);font-weight:600}
+.input{width:100%;border:1.5px solid #aab5b0;border-radius:4px;background:var(--paper);padding:10px 12px;font-size:17px;line-height:1.5;transition:border-color .15s}
+.input:hover{border-color:var(--ink-2)}
+.input:focus-visible{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,90,168,.25)}
+.input[aria-invalid=true]{border-color:var(--red)}
+textarea.input{resize:vertical;min-height:186px}
+.side-fields{display:flex;flex-direction:column;gap:18px}
+.pid-row{display:flex;gap:8px}
+.linkbtn{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;text-underline-offset:3px;font-size:15px;font-weight:600}
+.actions-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-top:26px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:10px 22px 8px;border-radius:5px;border:2px solid var(--green);font-weight:800;font-size:17px;line-height:1.2;transition:background .15s,color .15s,border-color .15s}
+.btn-go{background:var(--green);color:#fff;box-shadow:inset 0 0 0 2px #fff}
+.btn-go:hover:not(:disabled){background:var(--green-dk);border-color:var(--green-dk)}
+.btn-go:disabled{opacity:.6;cursor:progress}
+.btn-plain{background:var(--paper);color:var(--green-dk)}
+.btn-plain:hover:not(:disabled){background:var(--green-tint)}
+.btn-plain:disabled{opacity:.5;cursor:not-allowed}
+.btn-plain[aria-pressed=true]{background:var(--green-tint)}
+.btn-sm{min-height:38px;padding:6px 14px 4px;font-size:15px;border-width:1.5px}
+.btn-warn{border-color:#c79a00;background:var(--yellow-tint);color:#4d3a00}
+.btn-warn:hover:not(:disabled){background:var(--yellow)}
+.tip{font-size:14px;color:var(--ink-2)}
+.tip kbd{font:600 12px/1 var(--mono);padding:3px 5px;border-radius:3px;background:var(--band);border:1px solid var(--rule)}
+
+.progress{margin-top:22px;display:grid;gap:8px;max-width:440px}
+.progress li{display:flex;align-items:center;gap:12px;font-weight:600;color:var(--ink-2)}
+.progress li .ic{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:50%;border:2px solid var(--rule);font-size:13px;font-weight:800}
+.progress li.doing{color:var(--ink)}
+.progress li.doing .ic{border-color:var(--green);border-top-color:transparent;animation:spin .8s linear infinite}
+.progress li.ok{color:var(--green-dk)}
+.progress li.ok .ic{background:var(--green);border-color:var(--green);color:#fff}
+.progress li.ok .ic::before{content:"✓"}
+.progress li.bad .ic{background:var(--red);border-color:var(--red);color:#fff}
+.progress li.bad .ic::before{content:"!"}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.alert{margin-top:20px;padding:14px 18px;border-left:5px solid var(--red);background:var(--red-tint);border-radius:0 5px 5px 0}
+.alert b{display:block}
+.notice{padding:12px 16px;border-radius:5px;font-size:15px}
+.notice.warn{background:var(--yellow-tint);border:1px solid #ecd27a;color:#4d3a00}
+.notice.ok{background:var(--green-tint);color:var(--green-dk)}
+.notice.info{background:var(--blue-tint);color:#173f73}
+
+/* step 2 */
+.match{display:grid;grid-template-columns:300px minmax(0,1fr);gap:28px 36px}
+.urg-card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:24px 22px 22px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.urg-card .lead{font-weight:600;color:var(--ink-2);font-size:15px;margin-bottom:14px}
+.sign{position:relative;width:150px;height:150px;display:grid;place-items:center;font-weight:800;line-height:1}
+.sign::before,.sign::after{content:"";position:absolute}
+.sign .n{position:relative;font-size:64px;padding-top:8px}
+.sign .of{position:relative;display:block;font-size:15px;font-weight:600;margin-top:2px}
+.sign-stop::before{inset:0;background:#fff;clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%);filter:drop-shadow(0 0 0 #000)}
+.sign-stop::after{inset:6px;background:var(--red);clip-path:polygon(29.3% 0,70.7% 0,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0 70.7%,0 29.3%)}
+.sign-stop{color:#fff;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
+.sign-stop .wrapn{position:relative;z-index:1;text-align:center}
+.sign-warn::before{inset:17px;background:var(--ink);transform:rotate(45deg);border-radius:8px}
+.sign-warn::after{inset:21px;background:var(--yellow);transform:rotate(45deg);border-radius:6px}
+.sign-warn .n{font-size:56px}
+.sign-warn .of{font-size:13px}
+.sign-warn{color:var(--ink)}
+.sign-warn .wrapn{position:relative;z-index:1;text-align:center}
+.sign-guide::before{inset:16px 4px;background:var(--green);border-radius:8px}
+.sign-guide::after{inset:21px 9px;border:2.5px solid #fff;border-radius:5px}
+.sign-guide{color:#fff}
+.sign-guide .wrapn{position:relative;z-index:1;text-align:center}
+.urg-card h3{font-size:26px;font-weight:800;margin-top:14px;line-height:1.2}
+.urg-card .desc{color:var(--ink-2);margin-top:2px}
+.read{margin-top:18px;padding-top:16px;border-top:1px solid var(--rule);width:100%;text-align:left}
+.read h4{font-size:15px;font-weight:800;margin-bottom:8px}
+.read dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px}
+.read dt{color:var(--ink-2)}
+.tag{display:inline-block;padding:1px 8px 0;margin:0 4px 4px 0;border-radius:3px;background:var(--band);font-size:14px}
+.read .notice{margin-top:12px}
+
+.dest .lead{font-weight:600;color:var(--ink-2)}
+.guide-sign{display:inline-block;margin-top:8px;padding:14px 22px 10px;border-radius:7px;background:var(--green);color:#fff;box-shadow:inset 0 0 0 3px var(--green),inset 0 0 0 5px #fff;max-width:100%}
+.guide-sign h3{font-size:30px;line-height:1.15;font-weight:800}
+.guide-sign p{font-size:16px;opacity:.95;margin-top:2px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}
+.fact{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:12px 14px 10px}
+.fact .k{font-size:14px;color:var(--ink-2);font-weight:600}
+.fact .v{font-size:26px;font-weight:800;line-height:1.25}
+.fact .s{font-size:14px;color:var(--ink-2)}
+.why{margin-top:20px}
+.why h4{font-size:17px;font-weight:800;margin-bottom:4px}
+.why p{max-width:70ch}
+
+.mapbox{margin-top:22px;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:12px}
+.mapbox figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:14px;color:var(--ink-2);padding:8px 4px 0}
+.legend{display:flex;gap:14px;align-items:center}
+.legend i{display:inline-block;vertical-align:-2px;margin-right:5px}
+.lg-h{width:13px;height:13px;border-radius:2px;background:var(--blue)}
+.lg-c{width:13px;height:13px;border-radius:50%;background:var(--red)}
+.lg-r{width:22px;height:5px;border-radius:3px;background:var(--green)}
+#mapSvg{display:block;width:100%;height:auto;max-height:380px;margin:0 auto}
+.m-water{fill:#e8f1f7}
+.m-other{fill:#eceeed;stroke:#cfd5d2;stroke-width:1}
+.m-ns{fill:#e2ece4;stroke:#7f9c8b;stroke-width:1.2;stroke-linejoin:round}
+.m-label{font:italic 400 11px var(--sans);fill:#7d8a85}
+.m-town{font:600 12px var(--sans);fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round}
+.m-town.pick{font-weight:800;fill:var(--green-dk)}
+.m-hosp rect{fill:var(--blue);stroke:#fff;stroke-width:1.5}
+.m-hosp text{font:800 11px var(--sans);fill:#fff}
+.m-hosp.dim{opacity:.35}
+.m-hosp.pick rect{fill:var(--green)}
+.m-ring{fill:none;stroke:var(--green);stroke-width:2}
+.m-road{fill:none;stroke:var(--green);stroke-width:6;stroke-linecap:round}
+.m-road-edge{fill:none;stroke:#fff;stroke-width:9;stroke-linecap:round}
+.m-road-line{fill:none;stroke:#fff;stroke-width:1.3;stroke-dasharray:7 6}
+.m-clinic circle{fill:var(--red);stroke:#fff;stroke-width:2}
+
+.compare{margin-top:30px;padding-top:24px;border-top:1px solid var(--rule)}
+.compare-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.compare-head h3{font-size:22px;font-weight:800}
+.cmp{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cmp-col{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:18px 20px}
+.cmp-col.pick{border:2px solid var(--green)}
+.cmp-col h4{font-size:15px;font-weight:600;color:var(--ink-2)}
+.cmp-col .hn{font-size:20px;font-weight:800;line-height:1.25;margin:4px 0 12px}
+.cmp-col dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;border-top:1px solid var(--rule);padding-top:10px}
+.cmp-col dd{font-weight:800;font-size:20px;text-align:right}
+.cmp-col .note{margin-top:10px;font-size:14px;color:#7a5700}
+.verdict{margin-top:16px;padding:16px 20px;border-radius:6px;background:var(--paper);border-left:6px solid var(--green);font-size:18px}
+.verdict b{font-size:22px}
+.verdict .better{color:var(--green-dk)}
+.verdict .worse{color:#8a5a00}
+
+details.scores{margin-top:24px;background:var(--paper);border:1px solid var(--rule);border-radius:6px}
+details.scores summary{padding:14px 18px;font-weight:800;cursor:pointer}
+details.scores .inner{padding:0 18px 16px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-weight:600;color:var(--ink-2);padding:8px 10px;border-bottom:2px solid var(--rule);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.r,th.r{text-align:right}
+tr.pick td{background:var(--green-tint)}
+tr.pick td:first-child{box-shadow:inset 4px 0 0 var(--green)}
+tr.out td{color:var(--ink-2)}
+.pickmark{display:inline-block;padding:1px 8px 0;border-radius:3px;background:var(--green);color:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+
+/* step 3 */
+.send{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:22px 24px}
+.send p{font-size:18px}
+.send .tip{margin-top:4px}
+.receipt{margin-top:22px;border:2px solid var(--green);border-radius:6px;background:var(--paper);overflow:hidden}
+.receipt-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;background:var(--green-tint)}
+.receipt-head h3{font-size:22px;font-weight:800;color:var(--green-dk)}
+.receipt-head .btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.receipt dl{display:grid;grid-template-columns:180px 1fr;gap:0;padding:8px 20px 14px}
+.receipt dt,.receipt dd{padding:7px 0;border-bottom:1px solid var(--rule)}
+.receipt dt{color:var(--ink-2)}
+.receipt dd{font-weight:600}
+.receipt .refid{font-family:var(--mono);font-size:16px}
+.done-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+.flash-msg{font-size:14px;color:var(--green-dk);font-weight:600}
+
+/* ---------- hospitals ---------- */
+.hosp-section{padding:44px 0 48px;border-top:1px solid var(--rule)}
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px 24px;margin-bottom:22px}
+.sec-head h2{font-size:28px;font-weight:800;line-height:1.2}
+.sec-head p{color:var(--ink-2)}
+.totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.total{border:1px solid var(--rule);border-radius:6px;padding:12px 16px 10px}
+.total .k{font-size:14px;color:var(--ink-2);font-weight:600}
+.total .v{font-size:28px;font-weight:800;line-height:1.25}
+.hlist{border-top:2px solid var(--rule)}
+.hrow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.6fr);gap:6px 24px;align-items:center;padding:14px 10px;border-bottom:1px solid var(--rule);transition:background .6s}
+.hrow.head{padding-top:8px;padding-bottom:8px;font-size:14px;font-weight:600;color:var(--ink-2)}
+.hrow .hn{font-weight:800;line-height:1.3}
+.hrow .town{font-size:14px;color:var(--ink-2)}
+.full{display:flex;flex-direction:column;gap:5px}
+.full .bar{height:10px;border-radius:5px;background:var(--band);overflow:hidden;border:1px solid var(--rule)}
+.full .bar i{display:block;height:100%;background:var(--c);border-radius:5px 0 0 5px;transition:width .5s}
+.full .lbl{font-size:14px}
+.full .lbl b{font-weight:800}
+.trend{font-size:13px;color:var(--ink-2);margin-left:6px}
+.svc{font-size:14px;color:var(--ink-2)}
+.svc .need{color:var(--blue);font-weight:800}
+.hrow.changed{background:var(--yellow-tint)}
+.hrow.surged{background:var(--red-tint);box-shadow:inset 5px 0 0 var(--red)}
+.hrow.skel .sk{display:block;height:12px;border-radius:3px;background:var(--band);margin:4px 0}
+
+.practice-tools{margin-top:28px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;align-items:center;padding:20px 22px;border-radius:6px;background:var(--band)}
+.practice-tools h3{font-size:19px;font-weight:800}
+.practice-tools p{color:var(--ink-2);max-width:62ch}
+.practice-tools .btns{display:flex;gap:10px;flex-wrap:wrap}
+#surgeHint{grid-column:1/-1}
+details.log{margin-top:22px}
+details.log summary{cursor:pointer;font-weight:600;color:var(--ink-2)}
+.log-list{margin-top:10px;max-height:220px;overflow:auto;border:1px solid var(--rule);border-radius:5px;padding:8px 14px;font-size:14px}
+.log-list li{padding:4px 0;border-bottom:1px solid var(--band)}
+.log-list time{color:var(--ink-2);margin-right:10px;font-variant-numeric:tabular-nums}
+.log-list .bad{color:var(--red);font-weight:600}
+
+.foot{padding:26px 0 34px;font-size:14px;color:var(--ink-2);border-top:1px solid var(--rule)}
+
+/* ---------- responsive ---------- */
+@media (max-width:920px){
+  .head-nav{display:none}
+  .match{grid-template-columns:1fr}
+  .hrow{grid-template-columns:1fr 1fr}
+  .hrow.head{display:none}
+  .totals{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  body{font-size:16px}
+  .wrap{padding:0 18px}
+  .head-row{padding:0 18px}
+  .intro h1{font-size:30px}
+  .stepper{grid-template-columns:1fr}
+  .form{grid-template-columns:1fr}
+  .facts{grid-template-columns:1fr}
+  .cmp{grid-template-columns:1fr}
+  .send{grid-template-columns:1fr}
+  .practice-tools{grid-template-columns:1fr}
+  .receipt dl{grid-template-columns:1fr}
+  .receipt dt{border-bottom:0;padding-bottom:0}
+  .brand small{display:none}
+  .conn{font-size:13px;padding:5px 10px}
+}
+@media print{
+  .site-head,.practice,.intro,#step1,#step2,.hosp-section,.foot,.done-row,.receipt-head .btns{display:none!important}
+  .step{border:0;padding:0}
+  .receipt{border:1px solid #000}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body id="top">
+
+<header class="site-head">
+  <div class="head-row">
+    <a class="brand" href="#top" aria-label="RUSH, back to top">
+      <span><b>RUSH</b><small>Referral Upkeep System for Healthcare</small></span>
+    </a>
+    <nav class="head-nav" aria-label="Page sections">
+      <a href="#step1">Make a referral</a>
+      <a href="#hospitals">Hospitals right now</a>
+    </nav>
+    <div class="conn" id="conn" role="status">Checking the server</div>
+  </div>
+</header>
+
+<div class="practice" id="practiceBar" hidden>
+  <div class="wrap">
+    <span class="warnsign" aria-hidden="true"><span>!</span></span>
+    <p><b>Practice mode.</b> The referral server isn't running, so you're seeing sample hospitals and nothing is really sent. To connect, run <code>python3 run.py</code> in the project folder.</p>
+  </div>
+</div>
+
+<main>
+  <section class="intro wrap" aria-labelledby="h1">
+    <h1 id="h1">Find the right hospital for a rural patient, in three steps.</h1>
+    <p>Paste the doctor's notes. RUSH works out how urgent the case is, checks which hospitals have room and the right specialist, and suggests where to send the patient. Nothing is sent until you say so.</p>
+    <ol class="stepper" id="stepper" aria-label="Your progress">
+      <li data-s="1"><span class="sn">1</span><a href="#step1">Describe the patient</a></li>
+      <li data-s="2"><span class="sn">2</span><a href="#step2">Review the match</a></li>
+      <li data-s="3"><span class="sn">3</span><a href="#step3">Send the referral</a></li>
+    </ol>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="step" id="step1" aria-labelledby="s1h">
+    <div class="wrap">
+      <div class="step-head">
+        <span class="badge" aria-hidden="true">1</span>
+        <h2 id="s1h">Describe the patient</h2>
+        <p>Paste the referring doctor's notes and the clinic's postal code, then press <b>Find the best hospital</b>.</p>
+      </div>
+
+      <div class="examples" role="group" aria-label="Examples">
+        <span>New here? Try an example:</span>
+        <button class="ex" type="button" data-i="0" aria-pressed="false"><kbd>F1</kbd>Chest pain in Sydney</button>
+        <button class="ex" type="button" data-i="1" aria-pressed="false"><kbd>F2</kbd>Knee pain in Truro</button>
+        <button class="ex" type="button" data-i="2" aria-pressed="false"><kbd>F3</kbd>Belly pain in Kentville</button>
+      </div>
+
+      <div class="form">
+        <div class="field">
+          <label for="notes">Doctor's notes</label>
+          <textarea id="notes" class="input" rows="7" placeholder="For example: 55 year old man, crushing chest pain for 2 hours, ECG shows ST elevation." aria-describedby="notesErr"></textarea>
+          <span class="err" id="notesErr" hidden></span>
+        </div>
+        <div class="side-fields">
+          <div class="field">
+            <label for="zip">Clinic postal code</label>
+            <input id="zip" class="input" list="zipList" autocomplete="off" spellcheck="false" placeholder="B1P 5E7" aria-describedby="zipHelp zipErr">
+            <datalist id="zipList"></datalist>
+            <span class="help" id="zipHelp">Where the patient is being referred from.</span>
+            <span class="err" id="zipErr" hidden></span>
+          </div>
+          <div class="field">
+            <label for="pid">Patient ID</label>
+            <input id="pid" class="input" autocomplete="off" spellcheck="false" aria-describedby="pidHelp">
+            <span class="help" id="pidHelp">Filled in for you. <button class="linkbtn" type="button" id="pidNew">Make a new one</button></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn btn-go" id="findBtn" type="button">Find the best hospital</button>
+        <span class="tip">Shortcut: <kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+      </div>
+
+      <ol class="progress" id="progress" hidden aria-live="polite">
+        <li data-p="0"><span class="ic" aria-hidden="true"></span>Reading the doctor's notes</li>
+        <li data-p="1"><span class="ic" aria-hidden="true"></span>Checking the hospitals</li>
+        <li data-p="2"><span class="ic" aria-hidden="true"></span>Choosing the best match</li>
+      </ol>
+      <div class="alert" id="findErr" role="alert" hidden></div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step locked" id="step2" aria-labelledby="s2h">
+    <div class="wrap">
+      <div class="step-head">
+        <span class="badge" aria-hidden="true">2</span>
+        <h2 id="s2h">Review the match</h2>
+        <p>Check how urgent RUSH thinks this is, where it suggests sending the patient, and why.</p>
+      </div>
+      <p class="placeholder" id="s2empty">Nothing here yet. Fill in step 1 and press <b>Find the best hospital</b>.</p>
+
+      <div id="s2body" hidden>
+        <div class="match">
+          <div class="urg-card" id="urgCard">
+            <p class="lead">How urgent</p>
+            <div class="sign" id="urgSign" role="img"><div class="wrapn"><span class="n" id="urgNum"></span><span class="of">out of 10</span></div></div>
+            <h3 id="urgName"></h3>
+            <p class="desc" id="urgDesc"></p>
+            <div class="read">
+              <h4>What the notes say</h4>
+              <dl id="readList"></dl>
+              <div id="readSrc"></div>
+            </div>
+          </div>
+
+          <div class="dest">
+            <p class="lead">Suggested hospital</p>
+            <div class="guide-sign"><h3 id="hospName"></h3><p id="hospSub"></p></div>
+            <div class="facts">
+              <div class="fact"><div class="k">Distance</div><div class="v num" id="fDist"></div><div class="s" id="fDistS"></div></div>
+              <div class="fact"><div class="k">Expected wait</div><div class="v num" id="fWait"></div><div class="s" id="fWaitS"></div></div>
+              <div class="fact"><div class="k">How full</div><div class="v num" id="fFull"></div><div class="s" id="fFullS"></div></div>
+            </div>
+            <div class="why">
+              <h4>Why this hospital</h4>
+              <p id="whyText"></p>
+            </div>
+            <figure class="mapbox">
+              <svg id="mapSvg" viewBox="0 0 493 380" role="img" aria-labelledby="mapCap"></svg>
+              <figcaption><span id="mapCap"></span>
+                <span class="legend" aria-hidden="true"><span><i class="lg-c"></i>Clinic</span><span><i class="lg-h"></i>Hospital</span><span><i class="lg-r"></i>Route</span></span></figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="compare">
+          <div class="compare-head">
+            <h3>Would Halifax be better?</h3>
+            <button class="btn btn-plain btn-sm" id="cmpBtn" type="button" aria-expanded="false" aria-controls="cmpBody">Compare with Halifax</button>
+          </div>
+          <p class="muted">Without RUSH, most rural referrals go straight to the QEII in Halifax. See how that would compare for this patient.</p>
+          <div id="cmpBody" hidden>
+            <div class="cmp">
+              <div class="cmp-col"><h4>If sent to Halifax</h4><p class="hn" id="nvName"></p>
+                <dl><dt>Distance</dt><dd class="num" id="nvKm"></dd><dt>Expected wait</dt><dd class="num" id="nvWait"></dd></dl>
+                <p class="note" id="nvNote" hidden></p></div>
+              <div class="cmp-col pick"><h4>RUSH's suggestion</h4><p class="hn" id="rpName"></p>
+                <dl><dt>Distance</dt><dd class="num" id="rpKm"></dd><dt>Expected wait</dt><dd class="num" id="rpWait"></dd></dl></div>
+            </div>
+            <p class="verdict" id="verdict"></p>
+          </div>
+        </div>
+
+        <details class="scores">
+          <summary>See how every hospital scored</summary>
+          <div class="inner">
+            <table>
+              <thead><tr><th>Hospital</th><th class="r">Distance</th><th>How full</th><th>Specialist free?</th><th class="r">Score</th><th><span class="sr">Picked</span></th></tr></thead>
+              <tbody id="scoreRows"></tbody>
+            </table>
+            <p class="tip" id="scoreNote" style="margin-top:10px"></p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step locked" id="step3" aria-labelledby="s3h">
+    <div class="wrap">
+      <div class="step-head">
+        <span class="badge" aria-hidden="true">3</span>
+        <h2 id="s3h">Send the referral</h2>
+        <p>Happy with the match? Send it. You'll get a receipt you can copy or print.</p>
+      </div>
+      <p class="placeholder" id="s3empty">Review the match in step 2 first.</p>
+
+      <div id="s3body" hidden>
+        <div class="send" id="sendBox">
+          <div><p id="sendText"></p><p class="tip">Nothing has been sent yet.</p></div>
+          <button class="btn btn-go" id="sendBtn" type="button">Send referral</button>
+        </div>
+        <div class="alert" id="sendErr" role="alert" hidden></div>
+
+        <div class="receipt" id="receipt" hidden aria-labelledby="rcH">
+          <div class="receipt-head">
+            <h3 id="rcH">Referral sent</h3>
+            <div class="btns">
+              <span class="flash-msg" id="rcMsg" aria-live="polite"></span>
+              <button class="btn btn-plain btn-sm" id="statusBtn" type="button">Check status</button>
+              <button class="btn btn-plain btn-sm" id="copyBtn" type="button">Copy</button>
+              <button class="btn btn-plain btn-sm" id="printBtn" type="button">Print</button>
+            </div>
+          </div>
+          <dl id="rcList"></dl>
+        </div>
+        <div class="done-row" id="doneRow" hidden>
+          <button class="btn btn-plain" id="newBtn" type="button">Start a new patient</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOSPITALS -->
+  <section class="hosp-section" id="hospitals" aria-labelledby="hh">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><h2 id="hh">Hospitals right now</h2><p>How full each hospital is. Updates every 5 seconds.</p></div>
+        <p class="muted" id="hospUpdated"></p>
+      </div>
+      <div class="totals">
+        <div class="total"><div class="k">Beds in use</div><div class="v num" id="tOcc">–</div></div>
+        <div class="total"><div class="k">Free beds</div><div class="v num" id="tFree">–</div></div>
+        <div class="total"><div class="k">Patients on waiting lists</div><div class="v num" id="tQueue">–</div></div>
+        <div class="total"><div class="k">Referrals sent</div><div class="v num" id="tRefs">–</div></div>
+      </div>
+      <div class="hlist" id="hlist" aria-busy="true">
+        <div class="hrow head" aria-hidden="true"><span>Hospital</span><span>How full</span><span>Waiting list</span><span>Services</span></div>
+      </div>
+
+      <div class="practice-tools">
+        <div>
+          <h3>Try it: make a hospital busy</h3>
+          <p>See how RUSH reacts when a hospital fills up. Make one very busy, then press <b>Find the best hospital</b> again.</p>
+        </div>
+        <div class="btns">
+          <button class="btn btn-warn btn-sm" id="surgeBtn" type="button">Make a hospital busy</button>
+          <button class="btn btn-plain btn-sm" id="resetBtn" type="button" hidden>Put hospitals back</button>
+        </div>
+        <p id="surgeHint" aria-live="polite" hidden></p>
+      </div>
+
+      <details class="log">
+        <summary>Activity log</summary>
+        <ul class="log-list" id="log" aria-live="polite"></ul>
+      </details>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">RUSH is a demo. Hospital numbers are simulated. Don't use it for real clinical decisions.</div>
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const reduced = () => RM.matches;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const timeFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', hour:'numeric', minute:'2-digit'});
+const dayFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', weekday:'short', month:'short', day:'numeric'});
+const fullFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', dateStyle:'medium', timeStyle:'short'});
+const inDays = n => dayFmt.format(new Date(Date.now() + n * 864e5));
+const scrollTo = el => el.scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'});
+
+/* ================= static data ================= */
+// mirrors app/models/hub.py zip_to_coords so the scores here match the backend
+const ZIPS = {
+  'B1P 5E7': [46.1368, -60.1942, 'Sydney'],
+  'B3H 2Y9': [44.6488, -63.5752, 'Halifax'],
+  'B2N 1L5': [45.3655, -63.2924, 'Truro'],
+  'B1S 1A1': [45.9427, -60.0203, 'Cape Breton (east)'],
+  'B4N 1V5': [44.9849, -64.1293, 'Kentville'],
+  'B0W 2M0': [44.3386, -64.3835, 'Bridgewater'],
+  'B0N 1X0': [43.5000, -65.8000, 'Yarmouth'],
+  'B0V 1N0': [45.6000, -64.8000, 'Amherst'],
+  'B2H 1A1': [45.6000, -62.7000, 'New Glasgow'],
+  'B2N 0A1': [45.6000, -62.1000, 'Antigonish'],
+  'B1M 1A1': [46.0000, -60.5000, 'Glace Bay'],
+  'B0J 1S0': [44.3000, -64.7000, 'Lunenburg'],
+};
+const TOWN = {HAL_QEII:['Halifax','r'], TRU_COLCH:['Truro','r'], CB_REG:['Sydney','l'], VALLEY_REG:['Kentville','l'], SW_REG:['Bridgewater','l']};
+const townOf = h => (TOWN[h.hub_id] || [h.name])[0];
+const PLAIN = {'Cardiology':'heart', 'Neurology':'brain and nerve', 'Orthopedics':'bone and joint', 'Oncology':'cancer',
+  'General Surgery':'surgery', 'General Medicine':'general medicine', 'Emergency Medicine':'emergency', 'Maternity':'pregnancy and birth'};
+const plainSp = sp => PLAIN[sp] || String(sp).toLowerCase();
+const specLabel = sp => PLAIN[sp] && PLAIN[sp] !== String(sp).toLowerCase() ? `${sp} (${PLAIN[sp]})` : sp;
+
+const PRESETS = [
+  {zip:'B1P 5E7', notes:'55yo male crushing chest pain, ST elevation V1-V4, troponin elevated'},
+  {zip:'B2N 1L5', notes:'35yo chronic knee pain, MRI shows meniscus tear'},
+  {zip:'B4N 1V5', notes:'28yo female, 2 days of persistent right lower quadrant pain, low-grade fever 38.1, mild rebound tenderness. suspect early appendicitis. vitals stable, tolerating fluids.'},
+];
+
+// mirrors RoutingEngine._load_mock_hubs, used only in practice mode
+const MOCK_HUBS = [
+  {hub_id:'HAL_QEII', name:'QEII Health Sciences Centre', postal_code:'B3H 2Y9', specialties:['Cardiology','Neurology','Oncology','Orthopedics','General Surgery'], total_beds:1000, occupied_beds:850, referral_queue_length:42, latitude:44.6488, longitude:-63.5752,
+    specialists:[{id:'SP_001',name:'Dr. Smith',specialty:'Cardiology',available_slots:3,current_wait_days:5},{id:'SP_002',name:'Dr. Jones',specialty:'Cardiology',available_slots:0,current_wait_days:14},{id:'SP_003',name:'Dr. Wilson',specialty:'Neurology',available_slots:2,current_wait_days:7}]},
+  {hub_id:'TRU_COLCH', name:'Colchester East Hants Health Centre', postal_code:'B2N 1L5', specialties:['Cardiology','Orthopedics','General Medicine'], total_beds:300, occupied_beds:220, referral_queue_length:18, latitude:45.3655, longitude:-63.2924,
+    specialists:[{id:'SP_004',name:'Dr. Brown',specialty:'Cardiology',available_slots:1,current_wait_days:10},{id:'SP_005',name:'Dr. Taylor',specialty:'Orthopedics',available_slots:2,current_wait_days:8}]},
+  {hub_id:'CB_REG', name:'Cape Breton Regional Hospital', postal_code:'B1P 5E7', specialties:['Cardiology','General Surgery','Emergency Medicine'], total_beds:400, occupied_beds:320, referral_queue_length:25, latitude:46.1368, longitude:-60.1942,
+    specialists:[{id:'SP_006',name:'Dr. MacDonald',specialty:'Cardiology',available_slots:0,current_wait_days:21},{id:'SP_007',name:'Dr. Campbell',specialty:'General Surgery',available_slots:1,current_wait_days:12}]},
+  {hub_id:'VALLEY_REG', name:'Valley Regional Hospital', postal_code:'B4N 1V5', specialties:['General Medicine','Orthopedics','Maternity'], total_beds:200, occupied_beds:150, referral_queue_length:15, latitude:44.9849, longitude:-64.1293,
+    specialists:[{id:'SP_008',name:'Dr. Miller',specialty:'Orthopedics',available_slots:3,current_wait_days:6}]},
+  {hub_id:'SW_REG', name:'South Shore Regional Hospital', postal_code:'B0W 2M0', specialties:['General Medicine','Emergency Medicine'], total_beds:180, occupied_beds:140, referral_queue_length:12, latitude:44.3386, longitude:-64.3835,
+    specialists:[{id:'SP_009',name:'Dr. White',specialty:'General Medicine',available_slots:2,current_wait_days:4}]},
+];
+
+// simplified coastlines, [lon, lat]
+const SHAPES = {
+  NS:[[-64.35,45.80],[-64.05,46.0],[-63.75,45.88],[-63.35,45.75],[-62.75,45.68],[-62.45,45.65],[-61.95,45.88],[-61.85,45.70],[-61.55,45.65],[-61.40,45.62],[-61.20,45.45],[-60.99,45.33],[-61.40,45.20],[-61.95,45.08],[-62.55,44.88],[-63.10,44.72],[-63.52,44.50],[-63.95,44.48],[-64.30,44.30],[-64.70,44.03],[-65.30,43.70],[-65.62,43.42],[-66.05,43.72],[-66.18,44.05],[-66.05,44.35],[-65.80,44.60],[-65.30,44.92],[-64.85,45.15],[-64.50,45.33],[-64.38,45.14],[-64.10,45.04],[-63.85,45.27],[-63.45,45.31],[-63.80,45.40],[-64.30,45.38],[-64.95,45.33],[-64.70,45.55],[-64.45,45.72]],
+  CB:[[-61.40,45.65],[-61.50,45.90],[-61.45,46.10],[-61.25,46.30],[-61.05,46.60],[-60.75,46.92],[-60.55,47.04],[-60.38,47.00],[-60.33,46.75],[-60.42,46.50],[-60.30,46.30],[-60.15,46.25],[-59.90,46.20],[-59.72,46.03],[-59.95,45.92],[-60.20,45.85],[-60.65,45.70],[-60.90,45.55],[-61.15,45.55]],
+  LAKE:[[-61.0,45.75],[-60.65,45.80],[-60.45,46.0],[-60.55,46.12],[-60.80,45.98],[-61.05,45.90]],
+  NB:[[-66.6,47.2],[-64.9,47.2],[-64.8,46.6],[-64.5,46.25],[-64.05,46.0],[-64.35,45.80],[-64.6,45.75],[-64.9,45.6],[-65.5,45.3],[-66.1,45.15],[-66.6,45.1]],
+  PEI:[[-64.4,46.65],[-64.0,47.05],[-63.6,46.6],[-63.0,46.42],[-62.4,46.5],[-62.0,46.45],[-62.2,46.2],[-62.6,46.0],[-63.2,46.2],[-63.8,46.4]],
+};
+const MAPV = {lon0:-66.5, lat1:47.15, kx:100 * Math.cos(45.25 * Math.PI / 180), ky:100};
+const proj = (lat, lon) => [(lon - MAPV.lon0) * MAPV.kx, (MAPV.lat1 - lat) * MAPV.ky];
+
+/* ================= state ================= */
+const store = {        // localStorage can throw (privacy modes, sandboxed previews); the page must still work
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const qsApi = new URLSearchParams(location.search).get('api');   // run.py passes ?api=<backend url>
+if (qsApi && /^https?:\/\/[^\s]+$/i.test(qsApi)) {
+  store.set('rp.base', qsApi.replace(/\/+$/, ''));
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch {}
+}
+const S = {
+  base: store.get('rp.base') || qsApi || 'http://localhost:8000',
+  online: null, aiLive: null,
+  hubs: [], sig: {}, prevLoad: {}, baseline: {}, dash: null,
+  surged: new Set(), mock: null, provErr: false,
+  patient: null, plan: null, referral: null, preset: null, referrals: [],
+  running: false,
+};
+
+/* ================= routing (mirrors app/services/routing_engine.py) ================= */
+function geodesicKm(lat1, lon1, lat2, lon2) {          // vincenty inverse on WGS-84, same as geopy within mm
+  const a = 6378137, f = 1 / 298.257223563, b = (1 - f) * a, rad = Math.PI / 180;
+  const L = (lon2 - lon1) * rad;
+  const U1 = Math.atan((1 - f) * Math.tan(lat1 * rad)), U2 = Math.atan((1 - f) * Math.tan(lat2 * rad));
+  const sU1 = Math.sin(U1), cU1 = Math.cos(U1), sU2 = Math.sin(U2), cU2 = Math.cos(U2);
+  let lam = L, prev, it = 100, sS, cS, sig, c2a, c2m;
+  do {
+    const sl = Math.sin(lam), cl = Math.cos(lam);
+    sS = Math.sqrt((cU2 * sl) ** 2 + (cU1 * sU2 - sU1 * cU2 * cl) ** 2);
+    if (sS === 0) return 0;
+    cS = sU1 * sU2 + cU1 * cU2 * cl;
+    sig = Math.atan2(sS, cS);
+    const sa = cU1 * cU2 * sl / sS;
+    c2a = 1 - sa * sa;
+    c2m = c2a ? cS - 2 * sU1 * sU2 / c2a : 0;
+    const C = f / 16 * c2a * (4 + f * (4 - 3 * c2a));
+    prev = lam;
+    lam = L + (1 - C) * f * sa * (sig + C * sS * (c2m + C * cS * (-1 + 2 * c2m * c2m)));
+  } while (Math.abs(lam - prev) > 1e-12 && --it > 0);
+  const u2 = c2a * (a * a - b * b) / (b * b);
+  const A = 1 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+  const B = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+  const dS = B * sS * (c2m + B / 4 * (cS * (-1 + 2 * c2m * c2m) - B / 6 * c2m * (-3 + 4 * sS * sS) * (-3 + 4 * c2m * c2m)));
+  return b * A * (sig - dS) / 1000;
+}
+const loadPct = h => h.total_beds ? h.occupied_beds / h.total_beds * 100 : 0;
+const capScore = h => (1 - loadPct(h) / 100) * .7 + Math.max(0, 1 - h.referral_queue_length / 100) * .3;
+const busy = p => p > 85 ? {word:'Very full', c:'var(--red)'} : p >= 60 ? {word:'Busy', c:'var(--yellow)'} : {word:'Has room', c:'var(--green)'};
+const urgTier = u => u >= 8 ? 'high' : u >= 4 ? 'med' : 'low';
+const WEIGHTS = {
+  high: {specialist:.7, capacity:.2, distance:.1, why:'High urgency - prioritized specialist availability'},
+  med:  {specialist:.2, capacity:.5, distance:.3, why:'Medium urgency - balanced capacity and distance'},
+  low:  {specialist:.1, capacity:.3, distance:.6, why:'Low urgency - prioritized proximity to patient'},
+};
+const availSpecs = (h, sp) => (h.specialists || []).filter(s => s.specialty.toLowerCase() === String(sp).toLowerCase() && s.available_slots > 0);
+function hubDistance(h, zip) {
+  const a = ZIPS[zip], b = ZIPS[h.postal_code];
+  return a && b ? geodesicKm(b[0], b[1], a[0], a[1]) : 100;
+}
+function scoreHub(h, p) {
+  const sp = p.primary_specialty_required, d = hubDistance(h, p.home_clinic_zip), cap = capScore(h);
+  const n = availSpecs(h, sp).length, w = WEIGHTS[urgTier(p.urgency_score)];
+  const score = Math.min(1, n / 3) * w.specialist + cap * w.capacity + Math.max(0, 1 - d / 400) * w.distance;
+  const notes = `${w.why}. Hub: ${h.name}, Distance: ${d.toFixed(1)}km, Capacity: ${cap.toFixed(2)}, Available ${sp} specialists: ${n}`;
+  return {hub:h, dist:d, cap, n, score, notes, eligible:true};
+}
+function pickSpecialist(h, sp, u) {
+  const a = availSpecs(h, sp);
+  if (!a.length) return null;
+  if (u >= 7) a.sort((x, y) => x.current_wait_days - y.current_wait_days);
+  return a[0];
+}
+function estWait(h, s, u) {
+  const b = s ? s.current_wait_days : Math.max(7, Math.floor(h.referral_queue_length / 3));
+  if (u >= 9) return Math.max(1, Math.floor(b / 4));
+  if (u >= 7) return Math.max(2, Math.floor(b / 2));
+  return b;
+}
+function route(p, hubs) {
+  const sp = p.primary_specialty_required;
+  const offers = h => (h.specialties || []).includes(sp);
+  const ranked = hubs.filter(offers).map(h => scoreHub(h, p)).sort((a, b) => b.score - a.score);
+  const out = hubs.filter(h => !offers(h)).map(h => ({hub:h, dist:hubDistance(h, p.home_clinic_zip), cap:capScore(h), n:0, score:null, eligible:false}));
+  const best = ranked[0] || null;
+  const specialist = best ? pickSpecialist(best.hub, sp, p.urgency_score) : null;
+  const wait = best ? estWait(best.hub, specialist, p.urgency_score) : null;
+  return {ranked, out, best, specialist, wait, tier: urgTier(p.urgency_score)};
+}
+
+/* ================= practice-mode backend ================= */
+function mockTriage(p) {
+  const n = p.clinical_notes.toLowerCase();
+  const has = (...w) => w.some(x => n.includes(x));
+  let u = 3;
+  if (has('stemi', 'st elevation', 'troponin', 'stroke', 'unresponsive', 'severe', 'critical', 'emergency')) u = 9;
+  else if (has('rebound', 'appendic')) u = 6;
+  else if (has('chest pain', 'unstable', 'acute', 'urgent', 'fever')) u = 7;
+  else if (has('persistent', 'chronic', 'routine', 'mri', 'tear')) u = 4;
+  let sp = 'General Medicine';
+  if (has('chest', 'heart', 'cardiac', 'ekg', 'ecg', 'troponin', 'st elevation')) sp = 'Cardiology';
+  else if (has('headache', 'stroke', 'neuro', 'seizure', 'weakness')) sp = 'Neurology';
+  else if (has('knee', 'meniscus', 'fracture', 'bone', 'ortho', 'joint', 'hip')) sp = 'Orthopedics';
+  else if (has('cancer', 'onco', 'tumor', 'mass')) sp = 'Oncology';
+  else if (has('appendic', 'right lower quadrant', 'rlq', 'hernia', 'gallbladder', 'abdominal')) sp = 'General Surgery';
+  const SYM = ['crushing chest pain', 'chest pain', 'st elevation', 'troponin elevated', 'shortness of breath', 'knee pain', 'meniscus tear', 'right lower quadrant pain', 'low-grade fever', 'rebound tenderness', 'headache', 'nausea'];
+  const MED = ['aspirin', 'metoprolol', 'nitroglycerin', 'heparin', 'ibuprofen', 'acetaminophen', 'warfarin', 'metformin'];
+  const sym = SYM.filter(s => n.includes(s)).filter((s, i, a) => !a.some(o => o !== s && o.includes(s)));
+  const risks = sp === 'Cardiology' && u >= 8 ? ['heart attack (STEMI)'] : has('appendic') ? ['burst appendix'] : sp === 'Orthopedics' ? ['ongoing joint damage'] : [];
+  return {...p, urgency_score:u, primary_specialty_required:sp, key_symptoms:sym, acute_risks:risks, current_medications:MED.filter(m => n.includes(m)), created_at:p.created_at || new Date().toISOString()};
+}
+function ensureMock() {
+  if (!S.mock) S.mock = {hubs:[], base:[], referrals:{}};
+  S.mock.hubs = clone(S.hubs.length ? S.hubs : MOCK_HUBS);
+  S.mock.base = clone(S.mock.hubs);
+}
+async function mockApi(method, path, {body, query} = {}) {
+  if (!S.mock) ensureMock();
+  const M = S.mock;
+  await sleep(150 + Math.random() * 150);
+  if (path === '/hubs') {
+    for (const h of M.hubs) {               // small drift so the board feels live
+      if (S.surged.has(h.hub_id) || Math.random() > .25) continue;
+      const b = M.base.find(x => x.hub_id === h.hub_id) || h, span = Math.max(2, Math.round(h.total_beds * .03));
+      h.occupied_beds = Math.min(b.occupied_beds + span, Math.max(b.occupied_beds - span, h.occupied_beds + Math.round(Math.random() * 4 - 2)));
+    }
+    return clone(M.hubs);
+  }
+  if (path === '/dashboard') {
+    const tb = M.hubs.reduce((s, h) => s + h.total_beds, 0), ob = M.hubs.reduce((s, h) => s + h.occupied_beds, 0);
+    return {system_metrics:{total_hubs:M.hubs.length, total_beds:tb, occupied_beds:ob, bed_occupancy_rate:`${(ob / tb * 100).toFixed(1)}%`,
+      total_referrals_in_queue:M.hubs.reduce((s, h) => s + h.referral_queue_length, 0), total_referrals_processed:Object.keys(M.referrals).length}};
+  }
+  if (path === '/triage') { await sleep(400); return mockTriage(body); }
+  if (path === '/refer') {
+    const p = body.urgency_score && body.primary_specialty_required ? body : mockTriage(body);
+    const r = route(p, M.hubs);
+    if (!r.best) throw new HttpError(400, `No hubs found offering specialty: ${p.primary_specialty_required}`);
+    const id = 'REF_' + Math.random().toString(16).slice(2, 10).toUpperCase();
+    const ref = {referral_id:id, patient_id:p.patient_id, referring_clinic_zip:p.home_clinic_zip, target_hub_id:r.best.hub.hub_id,
+      target_hub_name:r.best.hub.name, assigned_specialist_id:r.specialist ? r.specialist.id : null, urgency_score:p.urgency_score,
+      required_specialty:p.primary_specialty_required, distance_km:r.best.dist, estimated_wait_days:r.wait, routing_score:r.best.score,
+      status:'routed', created_at:new Date().toISOString(), routing_notes:r.best.notes};
+    M.referrals[id] = ref;
+    return clone(ref);
+  }
+  if (path.startsWith('/referral/')) {
+    const ref = M.referrals[decodeURIComponent(path.slice(10))];
+    if (!ref) throw new HttpError(404, 'Referral not found');
+    return clone(ref);
+  }
+  if (path === '/simulate/update-capacity') {
+    const h = M.hubs.find(x => x.hub_id === query.hub_id);
+    if (!h) throw new HttpError(404, `Hub ${query.hub_id} not found`);
+    h.occupied_beds = +query.occupied_beds; h.referral_queue_length = +query.queue_length;
+    return {message:'Capacity updated successfully'};
+  }
+  throw new HttpError(404, 'Not Found');
+}
+
+/* ================= server connection ================= */
+class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+function detailText(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  if (Array.isArray(d)) return d.map(x => `${(x.loc || []).filter(k => k !== 'body').join('.')}: ${x.msg}`).join('; ');
+  return JSON.stringify(d);
+}
+async function raw(method, path, {body, query, timeout = 4000} = {}) {
+  let url = S.base.replace(/\/+$/, '') + path;
+  if (query) url += '?' + new URLSearchParams(query);
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const res = await fetch(url, {method, signal:ctl.signal,
+      headers: body ? {'content-type':'application/json'} : undefined, body: body ? JSON.stringify(body) : undefined});
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new HttpError(res.status, detailText(data && data.detail) || res.statusText || 'request failed');
+    return data;
+  } finally { clearTimeout(t); }
+}
+async function api(method, path, opts = {}) {
+  if (S.online === false) return mockApi(method, path, opts);
+  try { return await raw(method, path, opts); }
+  catch (e) {
+    if (e instanceof HttpError) throw e;
+    setOnline(false);
+    return mockApi(method, path, opts);
+  }
+}
+function setOnline(v) {
+  if (S.online === v) return;
+  const first = S.online === null;
+  S.online = v;
+  if (!v) {
+    ensureMock();
+    log(first ? 'Server not found. Using practice mode.' : 'Lost the server. Switched to practice mode.');
+  } else {
+    log('Connected to the server.');
+    if (!first) {                         // practice-mode changes never reached the real server
+      S.surged.clear(); S.baseline = {};
+      $('#resetBtn').hidden = true; $('#surgeHint').hidden = true;
+    }
+  }
+  renderConn();
+}
+async function checkHealth() {
+  try {
+    const h = await raw('GET', '/health', {timeout:3000});
+    S.aiLive = !!(h && h.system && h.system.ai_triage_available);
+    setOnline(true);
+  } catch { setOnline(false); }
+  renderConn();
+}
+function renderConn() {
+  const c = $('#conn');
+  c.className = 'conn' + (S.online === true ? ' ok' : S.online === false ? ' off' : '');
+  c.textContent = S.online === true ? 'Connected' : S.online === false ? 'Practice mode' : 'Checking the server';
+  $('#practiceBar').hidden = S.online !== false;
+}
+
+/* ================= activity log ================= */
+function log(msg, bad = false) {
+  const box = $('#log'), li = document.createElement('li');
+  li.innerHTML = `<time>${timeFmt.format(new Date())}</time><span${bad ? ' class="bad"' : ''}>${esc(msg)}</span>`;
+  box.prepend(li);
+  while (box.children.length > 100) box.lastChild.remove();
+}
+
+/* ================= hospitals board ================= */
+const hubById = id => S.hubs.find(h => h.hub_id === id) || null;
+function ingestHubs(hubs) {
+  const changed = new Set(), first = !S.hubs.length;
+  for (const h of hubs) {
+    const sig = `${h.occupied_beds}/${h.referral_queue_length}`;
+    if (S.sig[h.hub_id] && S.sig[h.hub_id] !== sig) changed.add(h.hub_id);
+    S.sig[h.hub_id] = sig;
+    if (!S.baseline[h.hub_id]) S.baseline[h.hub_id] = {occupied_beds:h.occupied_beds, queue_length:h.referral_queue_length};
+  }
+  S.hubs = hubs;
+  renderHospitals(first ? new Set() : changed);
+}
+function renderHospitals(changed = new Set()) {
+  const box = $('#hlist');
+  box.removeAttribute('aria-busy');
+  $$('.hrow.skel', box).forEach(r => r.remove());
+  const need = S.patient && S.patient.primary_specialty_required;
+  for (const h of S.hubs) {
+    let row = box.querySelector(`.hrow[data-id="${CSS.escape(h.hub_id)}"]`);
+    if (!row) { row = document.createElement('div'); row.className = 'hrow'; row.dataset.id = h.hub_id; box.appendChild(row); }
+    const p = loadPct(h), b = busy(p), prev = S.prevLoad[h.hub_id];
+    const trend = prev == null || Math.abs(p - prev) < .5 ? '' : p > prev ? 'filling up' : 'emptying';
+    S.prevLoad[h.hub_id] = p;
+    row.innerHTML = `<div><div class="hn">${esc(h.name)}</div><div class="town">${esc(townOf(h))}</div></div>
+      <div class="full"><div class="bar" style="--c:${b.c}"><i style="width:${Math.min(100, p).toFixed(1)}%"></i></div>
+        <div class="lbl"><b>${p.toFixed(0)}% full</b> <span class="muted">${b.word}</span>${trend ? `<span class="trend">${trend}</span>` : ''}</div></div>
+      <div>${plural(h.referral_queue_length, 'patient')}</div>
+      <div class="svc">${(h.specialties || []).map(s => s === need ? `<span class="need">${esc(s)}</span>` : esc(s)).join(', ')}</div>`;
+    if (changed.has(h.hub_id) && !row.classList.contains('surged')) {
+      row.classList.add('changed');
+      clearTimeout(row._t); row._t = setTimeout(() => row.classList.remove('changed'), 1200);
+    }
+  }
+  $('#hospUpdated').textContent = `Last checked ${timeFmt.format(new Date())}`;
+}
+function renderTotals() {
+  const m = S.dash && S.dash.system_metrics;
+  if (!m) return;
+  $('#tOcc').textContent = m.bed_occupancy_rate;
+  $('#tFree').textContent = (m.total_beds - m.occupied_beds).toLocaleString('en-CA');
+  $('#tQueue').textContent = m.total_referrals_in_queue;
+  $('#tRefs').textContent = m.total_referrals_processed;
+}
+async function refreshHospitals() {
+  try {
+    const [hubs, dash] = await Promise.all([api('GET', '/hubs'), api('GET', '/dashboard')]);
+    ingestHubs(hubs);
+    S.dash = dash;
+    renderTotals();
+    S.provErr = false;
+  } catch (e) {
+    if (!S.provErr) log(`Couldn't update hospitals: ${e.message}`, true);
+    S.provErr = true;
+  }
+}
+async function loop() {
+  if (!document.hidden) { await checkHealth(); await refreshHospitals(); }
+  setTimeout(loop, 5000);
+}
+
+/* ================= step 1 ================= */
+const newPid = () => { $('#pid').value = `PAT_NS_${Math.floor(100 + Math.random() * 900)}`; };
+function normZip(v) {
+  const s = String(v || '').toUpperCase().replace(/\s+/g, '');
+  return s.length === 6 ? `${s.slice(0, 3)} ${s.slice(3)}` : String(v || '').trim().toUpperCase();
+}
+function updateZipHelp() {
+  const zip = normZip($('#zip').value), el = $('#zipHelp');
+  el.classList.remove('warn');
+  $('#zipErr').hidden = true; $('#zip').removeAttribute('aria-invalid');
+  if (!zip) el.textContent = 'Where the patient is being referred from.';
+  else if (ZIPS[zip]) el.textContent = `${ZIPS[zip][2]}. RUSH knows where this is.`;
+  else if (!/^[A-Z]\d[A-Z] \d[A-Z]\d$/.test(zip)) { el.textContent = 'Postal codes look like B1P 5E7.'; el.classList.add('warn'); }
+  else { el.textContent = 'RUSH doesn\'t know where this is yet, so it will guess every hospital is 100 km away.'; el.classList.add('warn'); }
+}
+function fieldErr(id, msg) {
+  const input = $(`#${id}`), err = $(`#${id}Err`);
+  input.setAttribute('aria-invalid', 'true');
+  err.textContent = msg; err.hidden = false;
+  input.focus();
+}
+function usePreset(i) {
+  if (S.running) return;
+  const p = PRESETS[i];
+  $('#notes').value = p.notes;
+  $('#zip').value = p.zip;
+  newPid();
+  S.preset = i;
+  $$('.ex').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+  $('#notesErr').hidden = true; $('#notes').removeAttribute('aria-invalid');
+  updateZipHelp();
+  findHospital();
+}
+function setProgress(i, state) {
+  const li = $(`#progress [data-p="${i}"]`);
+  li.className = state;
+}
+function setStepper(now) {
+  $$('#stepper li').forEach(li => {
+    const s = +li.dataset.s;
+    li.className = s < now ? 'done' : s === now ? 'now' : '';
+    if (s === now) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+  });
+  $('#step2').classList.toggle('locked', now < 2);
+  $('#step3').classList.toggle('locked', now < 2);
+}
+
+async function findHospital() {
+  if (S.running) return;
+  const notes = $('#notes').value.trim(), zip = normZip($('#zip').value);
+  if (!$('#pid').value.trim()) newPid();
+  if (!notes) return fieldErr('notes', 'Add the doctor\'s notes first. RUSH reads them to decide how urgent this is.');
+  if (!zip) return fieldErr('zip', 'Add the clinic\'s postal code, like B1P 5E7.');
+  $('#zip').value = zip;
+
+  S.running = true; S.referral = null;
+  const btn = $('#findBtn');
+  btn.disabled = true; btn.textContent = 'Finding the best hospital…';
+  $('#findErr').hidden = true;
+  $('#progress').hidden = false;
+  [0, 1, 2].forEach(i => setProgress(i, ''));
+
+  const patient = {patient_id:$('#pid').value.trim(), clinical_notes:notes, home_clinic_zip:zip};
+  const triP = api('POST', '/triage', {body:patient, timeout:35000});
+  const hubsP = api('GET', '/hubs');
+  triP.catch(() => {}); hubsP.catch(() => {});
+  let step = 0;
+  try {
+    setProgress(0, 'doing');
+    const tri = await triP;
+    if (!tri || !tri.urgency_score || !tri.primary_specialty_required) throw new Error('The notes came back without an urgency score or specialty. Add more detail to the notes and try again.');
+    setProgress(0, 'ok'); step = 1; setProgress(1, 'doing');
+    const hubs = await hubsP;
+    ingestHubs(hubs);
+    setProgress(1, 'ok'); step = 2; setProgress(2, 'doing');
+    await sleep(reduced() ? 0 : 250);
+    const plan = route(tri, hubs);
+    if (!plan.best) throw new Error(`None of the hospitals in RUSH offer ${specLabel(tri.primary_specialty_required)}. Arrange this referral by phone.`);
+    setProgress(2, 'ok');
+    S.patient = tri; S.plan = plan;
+    renderMatch();
+    renderHospitals();
+    log(`Matched ${tri.patient_id} (urgency ${tri.urgency_score}/10) to ${plan.best.hub.name}.`);
+    setStepper(2);
+    setTimeout(() => scrollTo($('#step2')), reduced() ? 0 : 300);
+  } catch (e) {
+    setProgress(step, 'bad');
+    const msg = e instanceof HttpError ? `The server said: ${e.message} (error ${e.status}).` : e.message;
+    const box = $('#findErr');
+    box.innerHTML = `<b>Couldn't find a hospital.</b>${esc(msg)}`;
+    box.hidden = false;
+    log(`Couldn't match ${patient.patient_id}: ${msg}`, true);
+  } finally {
+    S.running = false;
+    btn.disabled = false; btn.textContent = 'Find the best hospital';
+  }
+}
+
+/* ================= step 2 ================= */
+const TIERS = {
+  high:{name:'Emergency', sign:'sign-stop'},
+  med: {name:'See soon', sign:'sign-warn'},
+  low: {name:'Routine', sign:'sign-guide'},
+};
+function urgDesc(u) {
+  if (u >= 9) return 'Life-threatening. Needs care right away.';
+  if (u >= 7) return 'Urgent. Should be seen within a day or two.';
+  if (u >= 4) return 'Should see a specialist soon.';
+  return 'Can wait for a regular appointment.';
+}
+function driveText(km) {
+  if (km < 1) return 'Same town as the clinic';
+  const m = Math.max(5, Math.round(km / 80 * 60 / 5) * 5), h = Math.floor(m / 60), mm = m % 60;
+  return `About ${h ? `${h} h` : ''}${h && mm ? ' ' : ''}${mm ? `${mm} min` : ''} by car`;
+}
+function triageSource(p) {
+  const mocked = (p.key_symptoms || []).some(s => /^mock/.test(s)) || (p.acute_risks || []).includes('mock_risk');
+  if (S.online === false) return {mocked:false, check:true, html:'<p class="notice warn">Practice mode read these notes with simple keyword matching. Double-check the urgency before sending.</p>'};
+  if (mocked) return {mocked:true, check:true, html:`<p class="notice warn">${S.aiLive ? 'The AI couldn\'t read these notes, so RUSH fell back to keyword matching.' : 'Read by keyword matching because no AI key is set up.'} Double-check the urgency before sending.</p>`};
+  return {mocked:false, check:false, html:'<p class="notice info">Read by AI (Claude). Still worth a quick check.</p>'};
+}
+function whyText(p, r, hub, n) {
+  const sp = plainSp(p.primary_specialty_required);
+  const rule = {
+    high:`Because this is an emergency, RUSH looks first for a hospital with a ${sp} specialist free right now. How full it is comes next, and distance counts least.`,
+    med:`For a case that should be seen soon, RUSH looks mostly at how full each hospital is, then at the drive.`,
+    low:`For a routine case, RUSH picks the closest hospital that offers ${sp} care, then checks how full it is.`,
+  }[r.tier];
+  const fact = `${hub.name} ${n ? `has ${n === 1 ? 'a' : n} ${sp} specialist${n === 1 ? '' : 's'} free` : `has no ${sp} specialist free right now but still scored best`} and is ${Math.round(loadPct(hub))}% full.`;
+  const others = r.ranked.filter(x => x.hub.hub_id !== hub.hub_id);
+  const next = others.length ? ` Next best was ${others[0].hub.name} in ${townOf(others[0].hub)}.` : ` It's the only hospital here that offers ${sp} care.`;
+  return `${rule} ${fact}${next}`;
+}
+function renderMatch() {
+  const p = S.patient, r = S.plan, t = TIERS[r.tier];
+  $('#s2empty').hidden = true; $('#s2body').hidden = false;
+  $('#s3empty').hidden = true; $('#s3body').hidden = false;
+
+  const sign = $('#urgSign');
+  sign.className = `sign ${t.sign}`;
+  sign.setAttribute('aria-label', `Urgency ${p.urgency_score} out of 10`);
+  $('#urgNum').textContent = p.urgency_score;
+  $('#urgName').textContent = t.name;
+  $('#urgDesc').textContent = urgDesc(p.urgency_score);
+
+  const src = triageSource(p);
+  const list = a => src.mocked || !a || !a.length ? '<span class="muted">None picked out</span>' : a.map(x => `<span class="tag">${esc(x)}</span>`).join('');
+  $('#readList').innerHTML = `<dt>Needs</dt><dd>${esc(specLabel(p.primary_specialty_required))}</dd>
+    <dt>Symptoms</dt><dd>${list(p.key_symptoms)}</dd><dt>Risks</dt><dd>${list(p.acute_risks)}</dd><dt>Medications</dt><dd>${list(p.current_medications)}</dd>`;
+  $('#readSrc').innerHTML = src.html;
+
+  showDestination(r.best.hub, r.specialist, r.best.dist, r.wait, r.best.n, true);
+
+  // score table
+  const rows = [...r.ranked, ...r.out];
+  $('#scoreRows').innerHTML = rows.map(x => {
+    const pick = x.eligible && x === r.best;
+    return `<tr class="${pick ? 'pick' : ''}${x.eligible ? '' : ' out'}">
+      <td><b>${esc(x.hub.name)}</b><br><span class="muted">${esc(townOf(x.hub))}</span></td>
+      <td class="r num">${x.dist.toFixed(0)} km</td>
+      <td>${Math.round(loadPct(x.hub))}% <span class="muted">${busy(loadPct(x.hub)).word.toLowerCase()}</span></td>
+      <td>${x.eligible ? (x.n ? `Yes, ${x.n}` : 'No') : `Doesn't offer ${esc(plainSp(p.primary_specialty_required))} care`}</td>
+      <td class="r num">${x.eligible ? Math.round(x.score * 100) : '–'}</td>
+      <td>${pick ? '<span class="pickmark">Picked</span>' : ''}</td></tr>`;
+  }).join('');
+  const w = WEIGHTS[r.tier];
+  $('#scoreNote').textContent = `Score out of 100. For this urgency level it counts specialist availability ${w.specialist * 100}%, how full ${w.capacity * 100}%, and distance ${w.distance * 100}%.`;
+
+  // compare + step 3 reset
+  closeCompare();
+  $('#sendBox').hidden = false; $('#sendErr').hidden = true;
+  $('#receipt').hidden = true; $('#doneRow').hidden = true;
+  $('#sendBtn').disabled = false; $('#sendBtn').textContent = 'Send referral';
+  $('#sendText').innerHTML = `Send <b>${esc(p.patient_id)}</b> to <b>${esc(r.best.hub.name)}</b> in ${esc(townOf(r.best.hub))}.${src.check ? ' <span class="muted">Check the urgency in step 2 first.</span>' : ''}`;
+}
+function showDestination(hub, specialist, dist, wait, n, animate) {
+  const p = S.patient, b = busy(loadPct(hub));
+  $('#hospName').textContent = hub.name;
+  $('#hospSub').textContent = `${townOf(hub)}${specialist ? `. ${specialist.name} can take this patient.` : `. No ${plainSp(p.primary_specialty_required)} specialist free; patient joins the waiting list.`}`;
+  const known = !!ZIPS[p.home_clinic_zip];
+  $('#fDist').textContent = `${dist.toFixed(0)} km`;
+  $('#fDistS').textContent = known ? driveText(dist) : 'Clinic location unknown, distance is a guess';
+  $('#fWait').textContent = plural(wait, 'day');
+  $('#fWaitS').textContent = `Around ${inDays(wait)}`;
+  $('#fFull').textContent = `${Math.round(loadPct(hub))}%`;
+  $('#fFullS').textContent = b.word;
+  $('#whyText').textContent = whyText(p, S.plan, hub, n);
+  drawMap(hub, animate);
+}
+
+/* ================= map ================= */
+function polyPath(pts) { return 'M' + pts.map(([lon, lat]) => proj(lat, lon).map(v => v.toFixed(1)).join(',')).join('L') + 'Z'; }
+const MAP_BASE = `<rect class="m-water" width="493" height="380"/>
+  <path class="m-other" d="${polyPath(SHAPES.NB)}"/><path class="m-other" d="${polyPath(SHAPES.PEI)}"/>
+  <path class="m-ns" fill-rule="evenodd" d="${polyPath(SHAPES.NS)} ${polyPath(SHAPES.CB)} ${polyPath(SHAPES.LAKE)}"/>
+  <text class="m-label" x="22" y="40">New Brunswick</text><text class="m-label" x="215" y="88">P.E.I.</text>
+  <text class="m-label" x="40" y="215">Bay of Fundy</text><text class="m-label" x="330" y="330">Atlantic Ocean</text>`;
+function drawMap(pick, animate) {
+  const svg = $('#mapSvg'), p = S.patient, sp = p.primary_specialty_required;
+  let route = '';
+  const pll = pick.latitude != null ? [pick.latitude, pick.longitude] : ZIPS[pick.postal_code];
+  const [bx, by] = pll ? proj(pll[0], pll[1]) : [0, 0];
+
+  let cx = 0, cy = 0, coordsFound = false;
+  if (p.latitude != null && p.longitude != null) {
+    [cx, cy] = proj(p.latitude, p.longitude);
+    coordsFound = true;
+  } else {
+    const z = ZIPS[p.home_clinic_zip];
+    if (z) {
+      [cx, cy] = proj(z[0], z[1]);
+      coordsFound = true;
+    }
+  }
+
+  if (coordsFound) {
+    const near = S.hubs.find(h => { const ll = h.latitude != null ? [h.latitude, h.longitude] : ZIPS[h.postal_code]; if (!ll) return false; const [hx, hy] = proj(ll[0], ll[1]); return Math.hypot(hx - cx, hy - cy) < 10; });
+    if (near) cx += (TOWN[near.hub_id] || ['', 'r'])[1] === 'l' ? 18 : -18;
+  }
+
+  if (coordsFound && pll) {
+    const [ax, ay] = [cx, cy];
+    const dx = bx - ax, dy = by - ay;
+    if (hubDistance(pick, p.home_clinic_zip) >= 1) {
+      const cx = (ax + bx) / 2 - dy * .18, cy = (ay + by) / 2 + dx * .18;
+      const d = `M${ax.toFixed(1)},${ay.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`;
+      route = `<path class="m-road-edge" d="${d}"/><path class="m-road" id="road" d="${d}"/><path class="m-road-line" id="roadLine" d="${d}"/>`;
+    } else {
+      route = `<circle class="m-ring" cx="${bx}" cy="${by}" r="20"/>`;
+    }
+  }
+  const hosp = S.hubs.map(h => {
+    const ll = h.latitude != null ? [h.latitude, h.longitude] : ZIPS[h.postal_code];
+    if (!ll) return '';
+    const [x, y] = proj(ll[0], ll[1]), isPick = h.hub_id === pick.hub_id, side = (TOWN[h.hub_id] || ['', 'r'])[1];
+    const offers = (h.specialties || []).includes(sp), s = isPick ? 22 : 16;
+    const tx = side === 'l' ? x - s / 2 - 6 : x + s / 2 + 6;
+    return `<g class="m-hosp${isPick ? ' pick' : ''}${offers ? '' : ' dim'}"><rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" rx="2.5"/>
+      <text x="${x}" y="${y + (isPick ? 5 : 4)}" text-anchor="middle" style="font-size:${isPick ? 14 : 11}px">H</text></g>
+      <text class="m-town${isPick ? ' pick' : ''}" x="${tx}" y="${y + 4}" text-anchor="${side === 'l' ? 'end' : 'start'}">${esc(townOf(h))}</text>`;
+  }).join('');
+  let clinic = '';
+  if (coordsFound) {
+    clinic = `<g class="m-clinic"><circle cx="${cx}" cy="${cy}" r="7"/></g>
+      <text class="m-town" x="${cx}" y="${cy - 12}" text-anchor="middle">Clinic</text>`;
+  }
+  svg.innerHTML = MAP_BASE + route + hosp + clinic;
+  const grey = `Grey hospitals don't offer ${plainSp(sp)} care.`;
+  const z = ZIPS[p.home_clinic_zip];
+  $('#mapCap').textContent = coordsFound
+    ? (hubDistance(pick, p.home_clinic_zip) < 1
+      ? `The clinic and ${pick.name} are both in ${townOf(pick)}, so there's no drive. ${grey}`
+      : `Route from the clinic to ${pick.name} in ${townOf(pick)}. ${grey}`)
+    : `RUSH doesn't know where postal code ${p.home_clinic_zip} is, so no route is drawn.`;
+  const road = $('#road');
+  if (road && animate && !reduced()) {
+    const len = road.getTotalLength(), line = $('#roadLine');
+    road.style.strokeDasharray = `${len} ${len}`;
+    road.style.strokeDashoffset = len;
+    line.style.opacity = 0;
+    road.getBoundingClientRect();
+    road.style.transition = 'stroke-dashoffset 1s ease-in-out';
+    road.style.strokeDashoffset = 0;
+    line.style.transition = 'opacity .3s ease 1s';
+    line.style.opacity = 1;
+  }
+}
+
+/* ================= compare ================= */
+function openCompare() {
+  const p = S.patient, sp = p.primary_specialty_required, u = p.urgency_score;
+  const hal = hubById('HAL_QEII') || S.hubs.find(h => /^B3/.test(h.postal_code));
+  if (!hal) return;
+  const offers = (hal.specialties || []).includes(sp);
+  const nv = {dist:hubDistance(hal, p.home_clinic_zip), wait:estWait(hal, offers ? pickSpecialist(hal, sp, u) : null, u)};
+  const ref = S.referral;
+  const rpHub = ref ? (hubById(ref.target_hub_id) || {name:ref.target_hub_name, hub_id:ref.target_hub_id}) : S.plan.best.hub;
+  const rp = ref ? {dist:ref.distance_km, wait:ref.estimated_wait_days} : {dist:S.plan.best.dist, wait:S.plan.wait};
+  $('#nvName').textContent = hal.name;
+  $('#rpName').textContent = rpHub.name;
+  $('#nvKm').textContent = `${Math.round(nv.dist)} km`;
+  $('#rpKm').textContent = `${Math.round(rp.dist)} km`;
+  $('#nvWait').textContent = offers ? plural(nv.wait, 'day') : '–';
+  $('#rpWait').textContent = plural(rp.wait, 'day');
+  $('#nvNote').hidden = offers;
+  $('#nvNote').textContent = `Halifax doesn't offer ${plainSp(sp)} care in this system, so the referral would bounce back.`;
+
+  const dKm = Math.round(rp.dist) - Math.round(nv.dist), dD = rp.wait - nv.wait;
+  let v;
+  if (rpHub.hub_id === hal.hub_id) v = '<b>Halifax is the right call here.</b> RUSH agrees.';
+  else if (!offers) v = `<b class="better">RUSH sends the patient where ${esc(plainSp(sp))} care is actually available.</b>`;
+  else {
+    const km = dKm < 0 ? `<b class="better">${-dKm} km less driving</b>` : dKm > 0 ? `<b class="worse">${dKm} km more driving</b>` : '<b>The same drive</b>';
+    const days = dD < 0 ? `<b class="better">${plural(-dD, 'day')} less waiting</b>` : dD > 0 ? `<b class="worse">${plural(dD, 'day')} more waiting</b>` : 'the same wait';
+    const tail = dKm < 0 && dD > 0 ? ' Closer to home, but Halifax could see them a little sooner. Your call.'
+      : dKm > 0 && dD < 0 ? ' A longer drive, but they\'ll be seen sooner.'
+      : dKm <= 0 && dD <= 0 ? ' Better on both counts.' : '';
+    v = `${km} and ${days} than sending them to Halifax.${tail}`;
+  }
+  $('#verdict').innerHTML = v;
+  $('#cmpBody').hidden = false;
+  $('#cmpBtn').setAttribute('aria-expanded', 'true');
+  $('#cmpBtn').textContent = 'Hide comparison';
+}
+function closeCompare() {
+  $('#cmpBody').hidden = true;
+  $('#cmpBtn').setAttribute('aria-expanded', 'false');
+  $('#cmpBtn').textContent = 'Compare with Halifax';
+}
+
+/* ================= step 3 ================= */
+async function sendReferral() {
+  if (!S.patient || S.referral) return;
+  const btn = $('#sendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  $('#sendErr').hidden = true;
+  try {
+    const ref = await api('POST', '/refer', {body:S.patient, timeout:35000});
+    S.referral = ref;
+    S.referrals.push(ref);
+    if (ref.target_hub_id !== S.plan.best.hub.hub_id) {
+      const h = hubById(ref.target_hub_id) || {hub_id:ref.target_hub_id, name:ref.target_hub_name, specialists:[], postal_code:''};
+      const sp = (h.specialists || []).find(s => s.id === ref.assigned_specialist_id) || null;
+      showDestination(h, sp, ref.distance_km, ref.estimated_wait_days, availSpecs(h, S.patient.primary_specialty_required).length, false);
+      log(`Hospitals changed while you were reviewing. The referral went to ${ref.target_hub_name} instead.`);
+    }
+    $('#sendBox').hidden = true;
+    renderReceipt(ref);
+    setStepper(4);
+    log(`Referral ${ref.referral_id} sent to ${ref.target_hub_name}.`);
+    refreshHospitals();
+  } catch (e) {
+    const msg = e instanceof HttpError ? `The server said: ${e.message} (error ${e.status}).` : e.message;
+    $('#sendErr').innerHTML = `<b>The referral wasn't sent.</b>${esc(msg)} Press Send referral to try again.`;
+    $('#sendErr').hidden = false;
+    btn.disabled = false; btn.textContent = 'Send referral';
+    log(`Referral not sent: ${msg}`, true);
+  }
+}
+function receiptRows(ref) {
+  const z = ZIPS[ref.referring_clinic_zip], h = hubById(ref.target_hub_id);
+  const s = h && (h.specialists || []).find(x => x.id === ref.assigned_specialist_id);
+  return [
+    ['Referral number', `<span class="refid">${esc(ref.referral_id)}</span>`, ref.referral_id],
+    ['Patient', esc(ref.patient_id), ref.patient_id],
+    ['From', `${esc(ref.referring_clinic_zip)}${z ? `, ${esc(z[2])}` : ''}`, `${ref.referring_clinic_zip}${z ? `, ${z[2]}` : ''}`],
+    ['To', esc(ref.target_hub_name), ref.target_hub_name],
+    ['Specialist', s ? esc(s.name) : 'Waiting list', s ? s.name : 'Waiting list'],
+    ['Urgency', `${esc(ref.urgency_score)} out of 10, ${esc(specLabel(ref.required_specialty))}`, `${ref.urgency_score}/10, ${specLabel(ref.required_specialty)}`],
+    ['Distance', `${Number(ref.distance_km).toFixed(0)} km`, `${Number(ref.distance_km).toFixed(0)} km`],
+    ['Expected wait', `${plural(ref.estimated_wait_days, 'day')}, around ${inDays(ref.estimated_wait_days)}`, `${plural(ref.estimated_wait_days, 'day')}, around ${inDays(ref.estimated_wait_days)}`],
+    ['Status', ref.status === 'routed' ? 'Sent to hospital' : esc(ref.status), ref.status],
+    ['Sent', fullFmt.format(new Date(ref.created_at || Date.now())), fullFmt.format(new Date(ref.created_at || Date.now()))],
+  ];
+}
+function renderReceipt(ref) {
+  $('#rcList').innerHTML = receiptRows(ref).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('#rcMsg').textContent = '';
+  $('#receipt').hidden = false;
+  $('#doneRow').hidden = false;
+}
+async function copyReceipt() {
+  const text = receiptRows(S.referral).map(([k, , t]) => `${k}: ${t}`).join('\n');
+  try { await navigator.clipboard.writeText(text); $('#rcMsg').textContent = 'Copied.'; }
+  catch { $('#rcMsg').textContent = 'Copy didn\'t work here. Select the text and copy it instead.'; }
+}
+async function checkStatus() {
+  try {
+    const ref = await api('GET', `/referral/${encodeURIComponent(S.referral.referral_id)}`);
+    S.referral = {...S.referral, ...ref};
+    renderReceipt(S.referral);
+    $('#rcMsg').textContent = `Status: ${ref.status === 'routed' ? 'sent to hospital' : ref.status}.`;
+  } catch (e) {
+    $('#rcMsg').textContent = `Couldn't check: ${e.message}`;
+  }
+}
+function newPatient() {
+  S.patient = null; S.plan = null; S.referral = null; S.preset = null;
+  $('#notes').value = ''; $('#zip').value = ''; newPid(); updateZipHelp();
+  $$('.ex').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  $('#progress').hidden = true; $('#findErr').hidden = true;
+  $('#s2body').hidden = true; $('#s2empty').hidden = false;
+  $('#s3body').hidden = true; $('#s3empty').hidden = false;
+  setStepper(1);
+  renderHospitals();
+  scrollTo($('#step1'));
+  $('#notes').focus({preventScroll:true});
+}
+
+/* ================= practice tools ================= */
+async function surge() {
+  if (!S.hubs.length) return;
+  const btn = $('#surgeBtn');
+  const pool = S.hubs.filter(h => !S.surged.has(h.hub_id));
+  const list = pool.length ? pool : S.hubs;
+  const h = list[Math.floor(Math.random() * list.length)];
+  const occ = Math.min(h.total_beds, Math.ceil(h.total_beds * (.91 + Math.random() * .06)));
+  const q = Math.max(h.referral_queue_length, 60 + Math.floor(Math.random() * 35));
+  const before = S.patient ? (route(S.patient, S.hubs).best || {}).hub : null;
+  btn.disabled = true;
+  try {
+    await api('POST', '/simulate/update-capacity', {query:{hub_id:h.hub_id, occupied_beds:occ, queue_length:q}});
+    S.surged.add(h.hub_id);
+    await refreshHospitals();
+    const row = $(`.hrow[data-id="${CSS.escape(h.hub_id)}"]`);
+    if (row) row.classList.add('surged');
+    let tail;
+    if (!S.patient) tail = 'Now try an example in step 1 to see where patients go.';
+    else {
+      const after = (route(S.patient, S.hubs).best || {}).hub;
+      tail = before && after && before.hub_id !== after.hub_id
+        ? 'That changes the match for your current patient. Press Find the best hospital again to see it.'
+        : 'Your current patient\'s match stays the same. Try making another hospital busy.';
+    }
+    const hint = $('#surgeHint');
+    hint.innerHTML = `<b>${esc(h.name)} is now ${Math.round(occ / h.total_beds * 100)}% full</b> with ${q} patients waiting. ${esc(tail)}`;
+    hint.hidden = false;
+    $('#resetBtn').hidden = false;
+    log(`Practice: made ${h.name} very busy.`);
+  } catch (e) {
+    log(`Couldn't make ${h.name} busy: ${e.message}`, true);
+  } finally { btn.disabled = false; }
+}
+async function resetHospitals() {
+  const ids = [...S.surged];
+  $('#resetBtn').disabled = true;
+  try {
+    for (const id of ids) {
+      const b = S.baseline[id];
+      if (b) await api('POST', '/simulate/update-capacity', {query:{hub_id:id, occupied_beds:b.occupied_beds, queue_length:b.queue_length}});
+      S.surged.delete(id);
+    }
+    $$('.hrow.surged').forEach(r => r.classList.remove('surged'));
+    $('#surgeHint').textContent = 'Hospitals are back to normal.';
+    $('#resetBtn').hidden = true;
+    log('Practice: put hospitals back to normal.');
+    await refreshHospitals();
+  } catch (e) {
+    log(`Couldn't reset hospitals: ${e.message}`, true);
+  } finally { $('#resetBtn').disabled = false; }
+}
+
+/* ================= wiring ================= */
+function boot() {
+  newPid();
+  setStepper(1);
+  $('#zipList').innerHTML = Object.entries(ZIPS).map(([z, v]) => `<option value="${z}">${esc(v[2])}</option>`).join('');
+  $('#hlist').insertAdjacentHTML('beforeend', Array.from({length:5}, () => '<div class="hrow skel"><span class="sk" style="width:70%"></span><span class="sk"></span><span class="sk" style="width:50%"></span><span class="sk"></span></div>').join(''));
+  renderConn();
+
+  $('#findBtn').addEventListener('click', findHospital);
+  $$('.ex').forEach(b => b.addEventListener('click', () => usePreset(+b.dataset.i)));
+  $('#pidNew').addEventListener('click', newPid);
+  $('#zip').addEventListener('input', updateZipHelp);
+  $('#zip').addEventListener('blur', () => { const v = normZip($('#zip').value); if (v) $('#zip').value = v; updateZipHelp(); });
+  $('#notes').addEventListener('input', () => {
+    S.preset = null; $$('.ex').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    $('#notesErr').hidden = true; $('#notes').removeAttribute('aria-invalid');
+  });
+  $('#cmpBtn').addEventListener('click', () => $('#cmpBody').hidden ? openCompare() : closeCompare());
+  $('#sendBtn').addEventListener('click', sendReferral);
+  $('#copyBtn').addEventListener('click', copyReceipt);
+  $('#printBtn').addEventListener('click', () => window.print());
+  $('#statusBtn').addEventListener('click', checkStatus);
+  $('#newBtn').addEventListener('click', newPatient);
+  $('#surgeBtn').addEventListener('click', surge);
+  $('#resetBtn').addEventListener('click', resetHospitals);
+  document.addEventListener('keydown', e => {
+    if (/^F[123]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); usePreset(+e.key[1] - 1); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); findHospital(); }
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkHealth().then(refreshHospitals); });
+
+  checkHealth().then(refreshHospitals).then(() => setTimeout(loop, 5000));
+}
+boot();
+})();
+</script>
+</body>
+</html>
