@@ -7,40 +7,10 @@ The core algorithm that matches patients to optimal healthcare hubs based on:
 4. Specialist availability
 """
 from typing import List, Optional, Tuple, Dict
-from datetime import datetime
 
 from app.models.patient import Patient
-from app.models.hub import (HealthcareHub, Specialist, CriticalCapabilities, OnCall,
-                            BloodStock, TransportOptions, StockLevel as L)
+from app.models.hub import HealthcareHub, Specialist
 
-# ---------------------------------------------------------------------------
-# MOCK time-critical capabilities. Invented for the demo, NOT real hospital data.
-# Only the "EVT at QEII and Saint John" pattern reflects public information;
-# every other value (on-call, OR, blood stock, transport) is simulated.
-# ---------------------------------------------------------------------------
-def _caps(ct=True, cta=False, tpa=True, evt=False, neuro=False, vasc=False, trauma=False,
-          or_free=True, blood=("adequate",) * 4, air=False):
-    return CriticalCapabilities(
-        ct_available=ct, cta_available=cta, thrombolysis_capable=tpa, evt_capable=evt,
-        on_call=OnCall(neurology=neuro, vascular_surgery=vasc, trauma_surgery=trauma),
-        or_available=or_free,
-        blood=BloodStock(red_cells=L(blood[0]), plasma=L(blood[1]), platelets=L(blood[2]), o_negative=L(blood[3])),
-        transport=TransportOptions(ground=True, air=air),
-    )
-
-MOCK_CRITICAL = {
-    "HAL_QEII":   _caps(cta=True, evt=True, neuro=True, vasc=True, trauma=True, air=True),
-    "SJ_REG":     _caps(cta=True, evt=True, neuro=True, vasc=True, trauma=True, air=True),
-    "CB_REG":     _caps(cta=True, vasc=True, trauma=True, air=True),
-    "TRU_COLCH":  _caps(cta=True, blood=("adequate", "adequate", "low", "adequate"), air=True),
-    "VALLEY_REG": _caps(cta=True, trauma=True, air=True),
-    "SW_REG":     _caps(trauma=True, blood=("low", "critical", "none", "critical"), air=True),  # low stock: demo reroute
-    "YAR_REG":    _caps(cta=True, trauma=True, air=True),
-    "AMH_REG":    _caps(or_free=False, blood=("low", "low", "none", "low")),
-    "GLW_REG":    _caps(cta=True, trauma=True, air=True),
-    "ANT_REG":    _caps(blood=("adequate", "low", "none", "adequate")),
-}
-from app.models.referral import Referral
 
 
 class RoutingEngine:
@@ -192,12 +162,11 @@ class RoutingEngine:
                     Specialist(id="SP_013", name="Dr. King", specialty="Orthopedics", available_slots=2, current_wait_days=7),
                 ]
             ),
-            # Cross-border option for thrombectomy (Atlantic Canada). Capacity numbers are MOCK.
+            # Cross-border option (New Brunswick)
             "SJ_REG": HealthcareHub(
                 hub_id="SJ_REG",
                 name="Saint John Regional Hospital (NB)",
                 postal_code="E2L 4L2",
-                province="NB",
                 specialties=["Neurology", "Cardiology", "General Surgery", "Emergency Medicine"],
                 total_beds=450,
                 occupied_beds=380,
@@ -209,103 +178,52 @@ class RoutingEngine:
                 ]
             ),
         }
-        for hub_id, caps in MOCK_CRITICAL.items():
-            if hub_id in hubs:
-                hubs[hub_id].critical = caps
         return hubs
 
-    def find_optimal_hub(self, patient: Patient) -> Tuple[Optional[HealthcareHub], Optional[Specialist], float, str]:
+    def find_optimal_hub(self, patient: Patient) -> Tuple[HealthcareHub, Optional[Specialist]]:
         """
-        Find the optimal healthcare hub for a patient based on urgency and constraints.
+        Pick the best hub for a triaged patient.
 
-        Returns:
-            Tuple of (hub, specialist, routing_score, routing_notes)
-            routing_score is 0-1 where 1.0 is the best possible match.
+        Returns (hub, specialist). specialist is None when no specialist at that hub
+        has a free slot, in which case the patient joins the hub's waiting list.
+        Raises ValueError if the patient isn't triaged or no hub offers the specialty.
         """
         if not patient.urgency_score or not patient.primary_specialty_required:
             raise ValueError("Patient must have urgency_score and primary_specialty_required for routing")
 
         urgency = patient.urgency_score
-        required_specialty = patient.primary_specialty_required
+        specialty = patient.primary_specialty_required
 
-        # Step 1: Filter hubs that offer the required specialty
-        eligible_hubs = []
-        for hub in self.available_hubs.values():
-            if required_specialty in hub.specialties:
-                eligible_hubs.append(hub)
+        eligible = [h for h in self.available_hubs.values() if specialty in h.specialties]
+        if not eligible:
+            raise ValueError(f"No hubs found offering specialty: {specialty}")
 
-        if not eligible_hubs:
-            raise ValueError(f"No hubs found offering specialty: {required_specialty}")
+        best = max(eligible, key=lambda h: self.score_hub(h, patient))
+        return best, self._select_specialist(best, specialty, urgency)
 
-        # Step 2: Calculate scores for each eligible hub
-        hub_scores = []
-        for hub in eligible_hubs:
-            score, notes = self._calculate_hub_score(hub, patient, urgency, required_specialty)
-            hub_scores.append((hub, score, notes))
-
-        # Step 3: Sort by score (highest first)
-        hub_scores.sort(key=lambda x: x[1], reverse=True)
-
-        # Step 4: Select best hub and find available specialist
-        best_hub, best_score, best_notes = hub_scores[0]
-        best_specialist = self._select_specialist(best_hub, required_specialty, urgency)
-
-        # Calculate estimated wait days
-        wait_days = self._estimate_wait_days(best_hub, best_specialist, urgency)
-
-        return best_hub, best_specialist, best_score, best_notes
-
-    def _calculate_hub_score(self, hub: HealthcareHub, patient: Patient,
-                           urgency: int, specialty: str) -> Tuple[float, str]:
+    def score_hub(self, hub: HealthcareHub, patient: Patient) -> float:
         """
-        Calculate a routing score (0-1) for this hub for this patient.
-
-        The weighting changes based on urgency:
-        - High urgency (8-10): Specialist availability weighted 70%, distance 10%, capacity 20%
-        - Medium urgency (4-7): Capacity weighted 50%, distance 30%, specialist 20%
-        - Low urgency (1-3): Distance weighted 60%, capacity 30%, specialist 10%
+        Routing score (0-1) for this hub for this patient. Weights depend on urgency:
+        - High (8-10):   specialist availability 70%, capacity 20%, distance 10%
+        - Medium (4-7):  capacity 50%, distance 30%, specialist 20%
+        - Low (1-3):     distance 60%, capacity 30%, specialist 10%
         """
-        # Get base metrics
-        if patient.latitude is not None and patient.longitude is not None:
-            distance = hub.distance_to_coords(patient.latitude, patient.longitude)
+        urgency = patient.urgency_score or 5
+        distance = hub.distance_to_zip(patient.home_clinic_zip)
+
+        distance_score = max(0.0, 1.0 - distance / 400.0)  # ~400 km spans the province
+        specialist_score = min(1.0, len(hub.get_available_specialists(patient.primary_specialty_required)) / 3.0)
+
+        if urgency >= 8:
+            w = {"specialist": 0.7, "capacity": 0.2, "distance": 0.1}
+        elif urgency >= 4:
+            w = {"specialist": 0.2, "capacity": 0.5, "distance": 0.3}
         else:
-            distance = hub.distance_to_zip(patient.home_clinic_zip)
+            w = {"specialist": 0.1, "capacity": 0.3, "distance": 0.6}
 
-        capacity_score = hub.capacity_score
-        specialist_availability = len(hub.get_available_specialists(specialty))
-
-        # Normalize distance (0-1, where 1 is closest)
-        # Max distance in NS is ~400km, normalize to that
-        max_distance_ns = 400.0
-        distance_score = max(0, 1.0 - (distance / max_distance_ns))
-
-        # Normalize specialist availability (0-1)
-        # More available specialists = better score
-        specialist_score = min(1.0, specialist_availability / 3.0)
-
-        # Apply urgency-based weighting
-        if urgency >= 8:  # High urgency
-            weights = {"specialist": 0.7, "capacity": 0.2, "distance": 0.1}
-            explanation = "High urgency - prioritized specialist availability"
-        elif urgency >= 4:  # Medium urgency
-            weights = {"capacity": 0.5, "distance": 0.3, "specialist": 0.2}
-            explanation = "Medium urgency - balanced capacity and distance"
-        else:  # Low urgency
-            weights = {"distance": 0.6, "capacity": 0.3, "specialist": 0.1}
-            explanation = "Low urgency - prioritized proximity to patient"
-
-        # Calculate weighted score
-        weighted_score = (
-            (specialist_score * weights["specialist"]) +
-            (capacity_score * weights["capacity"]) +
-            (distance_score * weights["distance"])
-        )
-
-        # Generate routing notes
-        notes = f"{explanation}. Hub: {hub.name}, Distance: {distance:.1f}km, "
-        notes += f"Capacity: {hub.capacity_score:.2f}, Available {specialty} specialists: {specialist_availability}"
-
-        return weighted_score, notes
+        return (specialist_score * w["specialist"]
+                + hub.capacity_score * w["capacity"]
+                + distance_score * w["distance"])
 
     def _select_specialist(self, hub: HealthcareHub, specialty: str, urgency: int) -> Optional[Specialist]:
         """Select the best available specialist at the hub."""

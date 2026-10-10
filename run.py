@@ -136,16 +136,6 @@ class UIHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def placeholder_key() -> bool:
-    env = ROOT / ".env"
-    if not env.exists():
-        return False
-    for line in env.read_text().splitlines():
-        if line.strip().startswith("ANTHROPIC_API_KEY"):
-            return "your_api_key_here" in line
-    return False
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description="Start the RUSH API and UI.")
     ap.add_argument("--api-port", type=int, default=8000)
@@ -167,6 +157,8 @@ def main() -> None:
     try:
         serve(args)
     except KeyboardInterrupt:
+        signal.signal(signal.SIGINT, signal.SIG_IGN)   # a second ctrl+c shouldn't interrupt cleanup
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         print("\n  stopping ...")
     finally:
         if RUNNING["ui"]:
@@ -214,12 +206,10 @@ def serve(args) -> None:
 
     api_url = f"http://localhost:{api_port}"
     ai = (health(api_port) or {}).get("system", {}).get("ai_triage_available")
-    if ai and placeholder_key():
-        triage = "broken: .env still has the placeholder key, every call falls back to keywords"
-    elif ai:
+    if ai:
         triage = "api key found, claude will be tried (falls back to keywords if a call fails)"
     else:
-        triage = "keyword fallback (add ANTHROPIC_API_KEY to .env for claude)"
+        triage = "keyword matching (put ANTHROPIC_API_KEY=... in a .env file to use claude)"
 
     print(f"""
   ui      http://localhost:{ui_port}

@@ -4,11 +4,8 @@ Transforms unstructured clinical notes into structured medical urgency scores an
 """
 import json
 import os
-from typing import Dict, Any, Optional
 import httpx
 from dotenv import load_dotenv
-from geopy.geocoders import Nominatim
-from geopy.exc import GeopyError
 
 from app.models.patient import Patient
 
@@ -25,8 +22,9 @@ class TriageService:
     def __init__(self):
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self.base_url = "https://api.anthropic.com/v1/messages"
-        self.model = "claude-sonnet-5-5"
-        self.geolocator = Nominatim(user_agent="rush-healthcare-triage")
+        # Haiku: fastest and cheapest, plenty for pulling urgency/specialty out of notes.
+        # Override with ANTHROPIC_MODEL in .env (e.g. claude-sonnet-5-5) if you want a bigger model.
+        self.model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
 
         if not self.api_key:
             # For demo purposes, use a mock mode if no API key is set
@@ -43,7 +41,6 @@ class TriageService:
     async def analyze_clinical_notes(self, patient: Patient) -> Patient:
         """
         Analyze the patient's clinical notes and populate the structured fields.
-        Also resolves the clinic's postal code to actual coordinates.
 
         Returns the same patient object with populated:
         - urgency_score
@@ -51,17 +48,9 @@ class TriageService:
         - key_symptoms
         - acute_risks
         - current_medications
-        - latitude/longitude
-        """
-        # Resolve coordinates first
-        try:
-            location = self.geolocator.geocode(f"{patient.home_clinic_zip}, Nova Scotia, Canada")
-            if location:
-                patient.latitude = location.latitude
-                patient.longitude = location.longitude
-        except GeopyError as e:
-            print(f"Geocoding error: {e}")
 
+        Falls back to keyword matching if there's no API key or the API call fails.
+        """
         if self.mock_mode:
             return self._mock_analysis(patient)
 
@@ -170,14 +159,3 @@ class TriageService:
 
         print(f"Mock triage complete: Urgency={urgency}, Specialty={specialty}")
         return patient
-
-    def get_urgency_description(self, score: int) -> str:
-        """Convert numeric urgency score to human-readable description."""
-        if score >= 9:
-            return "Life-threatening emergency"
-        elif score >= 7:
-            return "Urgent - requires attention within 24-48 hours"
-        elif score >= 4:
-            return "Semi-urgent - timely specialist needed"
-        else:
-            return "Routine - can wait for next available appointment"

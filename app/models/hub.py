@@ -1,9 +1,6 @@
-from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from geopy.distance import geodesic
-
-SIMULATED_NOTE = "MOCK DATA: capabilities, stock and transport are simulated for demo purposes, not real hospital data."
 
 class Specialist(BaseModel):
     """A specialist doctor at a healthcare hub."""
@@ -14,53 +11,11 @@ class Specialist(BaseModel):
     current_wait_days: int = Field(default=7, ge=0)
 
 
-class StockLevel(str, Enum):
-    ADEQUATE = "adequate"
-    LOW = "low"
-    CRITICAL = "critical"
-    NONE = "none"
-
-
-class BloodStock(BaseModel):
-    """Blood product stock on hand. MOCK levels, not real inventory."""
-    red_cells: StockLevel = StockLevel.ADEQUATE
-    plasma: StockLevel = StockLevel.ADEQUATE
-    platelets: StockLevel = StockLevel.ADEQUATE
-    o_negative: StockLevel = StockLevel.ADEQUATE  # uncrossmatched emergency release
-
-
-class OnCall(BaseModel):
-    """Specialists on call right now (MOCK)."""
-    neurology: bool = False
-    vascular_surgery: bool = False
-    trauma_surgery: bool = False
-
-
-class TransportOptions(BaseModel):
-    """How a patient can reach this hub (MOCK)."""
-    ground: bool = True
-    air: bool = False               # helipad / air ambulance landing
-    air_weather_hold: bool = False  # MOCK weather flag: air transport grounded
-
-
-class CriticalCapabilities(BaseModel):
-    """Time-critical capabilities used for acuity-first routing. All values MOCK."""
-    ct_available: bool = False
-    cta_available: bool = False          # CT angiography, needed to confirm large vessel occlusion
-    thrombolysis_capable: bool = False   # can give IV tPA/TNK
-    evt_capable: bool = False            # endovascular thrombectomy
-    on_call: OnCall = Field(default_factory=OnCall)
-    or_available: bool = False           # an operating room is free now
-    blood: BloodStock = Field(default_factory=BloodStock)
-    transport: TransportOptions = Field(default_factory=TransportOptions)
-
-
 class HealthcareHub(BaseModel):
-    """A hospital that can accept referrals or transfers. All operational data is MOCK."""
+    """A hospital that can accept referrals. All capacity numbers are simulated."""
     hub_id: str = Field(..., description="Unique hub identifier")
     name: str
     postal_code: str  # For distance calculation
-    province: str = "NS"
     specialties: List[str] = Field(..., description="List of specialties available at this hub")
 
     # Current capacity metrics (simulated - in real app this would come from an API)
@@ -75,11 +30,6 @@ class HealthcareHub(BaseModel):
     # Specialists at this hub
     specialists: List[Specialist] = Field(default_factory=list)
 
-    # Time-critical capabilities (MOCK)
-    critical: CriticalCapabilities = Field(default_factory=CriticalCapabilities)
-
-    simulated: bool = True
-    data_note: str = SIMULATED_NOTE
 
     class Config:
         json_schema_extra = {
@@ -130,9 +80,8 @@ class HealthcareHub(BaseModel):
 
     def distance_to_zip(self, target_zip: str) -> float:
         """
-        Mock distance calculator between hubs.
-        In a real implementation, this would use a geocoding service.
-        Returns distance in kilometers.
+        Distance in km from this hub to a clinic postal code.
+        Only the postal codes below are known; anything else is assumed to be 100 km away.
         """
         # Simplified mapping of Nova Scotia postal codes to coordinates
         zip_to_coords = {
@@ -159,17 +108,3 @@ class HealthcareHub(BaseModel):
             return 100.0
 
         return geodesic(hub_coords, target_coords).km
-
-    def distance_to_coords(self, lat: float, lon: float) -> float:
-        """Calculate distance from hub to specific coordinates."""
-        hub_coords = (self.latitude, self.longitude)
-        if not hub_coords[0] or not hub_coords[1]:
-            # Fallback to postal code mapping if hub coords are missing
-            zip_to_coords = {
-                "B1P 5E7": (46.1368, -60.1942), "B3H 2Y9": (44.6488, -63.5752),
-                "B2N 1L5": (45.3655, -63.2924), "B1S 1A1": (45.9427, -60.0203),
-                "B4N 1V5": (44.9849, -64.1293), "B0W 2M0": (44.3386, -64.3835),
-            }
-            hub_coords = zip_to_coords.get(self.postal_code, (45.0, -63.0))
-
-        return geodesic(hub_coords, (lat, lon)).km

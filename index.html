@@ -360,7 +360,6 @@ const timeFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', ho
 const dayFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', weekday:'short', month:'short', day:'numeric'});
 const fullFmt = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Halifax', dateStyle:'medium', timeStyle:'short'});
 const inDays = n => dayFmt.format(new Date(Date.now() + n * 864e5));
-const scrollTo = el => el.scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'});
 
 /* ================= static data ================= */
 // mirrors app/models/hub.py zip_to_coords so the scores here match the backend
@@ -392,18 +391,28 @@ const PRESETS = [
   {zip:'B4N 1V5', notes:'28yo female, 2 days of persistent right lower quadrant pain, low-grade fever 38.1, mild rebound tenderness. suspect early appendicitis. vitals stable, tolerating fluids.'},
 ];
 
-// mirrors RoutingEngine._load_mock_hubs, used only in practice mode
+// same hospitals as RoutingEngine._load_mock_hubs; used only in practice mode (server not running)
 const MOCK_HUBS = [
-  {hub_id:'HAL_QEII', name:'QEII Health Sciences Centre', postal_code:'B3H 2Y9', specialties:['Cardiology','Neurology','Oncology','Orthopedics','General Surgery'], total_beds:1000, occupied_beds:850, referral_queue_length:42, latitude:44.6488, longitude:-63.5752,
+  {hub_id:'HAL_QEII', name:'QEII Health Sciences Centre', postal_code:'B3H 2Y9', specialties:['Cardiology', 'Neurology', 'Oncology', 'Orthopedics', 'General Surgery'], total_beds:1000, occupied_beds:850, referral_queue_length:42, latitude:44.6488, longitude:-63.5752,
     specialists:[{id:'SP_001',name:'Dr. Smith',specialty:'Cardiology',available_slots:3,current_wait_days:5},{id:'SP_002',name:'Dr. Jones',specialty:'Cardiology',available_slots:0,current_wait_days:14},{id:'SP_003',name:'Dr. Wilson',specialty:'Neurology',available_slots:2,current_wait_days:7}]},
-  {hub_id:'TRU_COLCH', name:'Colchester East Hants Health Centre', postal_code:'B2N 1L5', specialties:['Cardiology','Orthopedics','General Medicine'], total_beds:300, occupied_beds:220, referral_queue_length:18, latitude:45.3655, longitude:-63.2924,
+  {hub_id:'TRU_COLCH', name:'Colchester East Hants Health Centre', postal_code:'B2N 1L5', specialties:['Cardiology', 'Orthopedics', 'General Medicine'], total_beds:300, occupied_beds:220, referral_queue_length:18, latitude:45.3655, longitude:-63.2924,
     specialists:[{id:'SP_004',name:'Dr. Brown',specialty:'Cardiology',available_slots:1,current_wait_days:10},{id:'SP_005',name:'Dr. Taylor',specialty:'Orthopedics',available_slots:2,current_wait_days:8}]},
-  {hub_id:'CB_REG', name:'Cape Breton Regional Hospital', postal_code:'B1P 5E7', specialties:['Cardiology','General Surgery','Emergency Medicine'], total_beds:400, occupied_beds:320, referral_queue_length:25, latitude:46.1368, longitude:-60.1942,
+  {hub_id:'CB_REG', name:'Cape Breton Regional Hospital', postal_code:'B1P 5E7', specialties:['Cardiology', 'General Surgery', 'Emergency Medicine'], total_beds:400, occupied_beds:320, referral_queue_length:25, latitude:46.1368, longitude:-60.1942,
     specialists:[{id:'SP_006',name:'Dr. MacDonald',specialty:'Cardiology',available_slots:0,current_wait_days:21},{id:'SP_007',name:'Dr. Campbell',specialty:'General Surgery',available_slots:1,current_wait_days:12}]},
-  {hub_id:'VALLEY_REG', name:'Valley Regional Hospital', postal_code:'B4N 1V5', specialties:['General Medicine','Orthopedics','Maternity'], total_beds:200, occupied_beds:150, referral_queue_length:15, latitude:44.9849, longitude:-64.1293,
+  {hub_id:'VALLEY_REG', name:'Valley Regional Hospital', postal_code:'B4N 1V5', specialties:['General Medicine', 'Orthopedics', 'Maternity'], total_beds:200, occupied_beds:150, referral_queue_length:15, latitude:44.9849, longitude:-64.1293,
     specialists:[{id:'SP_008',name:'Dr. Miller',specialty:'Orthopedics',available_slots:3,current_wait_days:6}]},
-  {hub_id:'SW_REG', name:'South Shore Regional Hospital', postal_code:'B0W 2M0', specialties:['General Medicine','Emergency Medicine'], total_beds:180, occupied_beds:140, referral_queue_length:12, latitude:44.3386, longitude:-64.3835,
+  {hub_id:'SW_REG', name:'South Shore Regional Hospital', postal_code:'B0W 2M0', specialties:['General Medicine', 'Emergency Medicine'], total_beds:180, occupied_beds:140, referral_queue_length:12, latitude:44.3386, longitude:-64.3835,
     specialists:[{id:'SP_009',name:'Dr. White',specialty:'General Medicine',available_slots:2,current_wait_days:4}]},
+  {hub_id:'YAR_REG', name:'Yarmouth Regional Memorial', postal_code:'B0N 1X0', specialties:['General Medicine', 'Emergency Medicine', 'Orthopedics'], total_beds:150, occupied_beds:110, referral_queue_length:10, latitude:43.5, longitude:-65.8,
+    specialists:[{id:'SP_010',name:'Dr. Moore',specialty:'General Medicine',available_slots:2,current_wait_days:3}]},
+  {hub_id:'AMH_REG', name:'Amherst Hospital', postal_code:'B0V 1N0', specialties:['General Medicine', 'Emergency Medicine'], total_beds:120, occupied_beds:80, referral_queue_length:8, latitude:45.6, longitude:-64.8,
+    specialists:[{id:'SP_011',name:'Dr. Green',specialty:'Emergency Medicine',available_slots:1,current_wait_days:2}]},
+  {hub_id:'GLW_REG', name:'North Nova Scotia Health Centre', postal_code:'B2H 1A1', specialties:['General Medicine', 'Cardiology'], total_beds:220, occupied_beds:170, referral_queue_length:20, latitude:45.6, longitude:-62.7,
+    specialists:[{id:'SP_012',name:'Dr. Lee',specialty:'Cardiology',available_slots:1,current_wait_days:12}]},
+  {hub_id:'ANT_REG', name:'Antigonish Memorial', postal_code:'B2N 0A1', specialties:['General Medicine', 'Orthopedics'], total_beds:130, occupied_beds:90, referral_queue_length:12, latitude:45.6, longitude:-62.1,
+    specialists:[{id:'SP_013',name:'Dr. King',specialty:'Orthopedics',available_slots:2,current_wait_days:7}]},
+  {hub_id:'SJ_REG', name:'Saint John Regional Hospital (NB)', postal_code:'E2L 4L2', specialties:['Neurology', 'Cardiology', 'General Surgery', 'Emergency Medicine'], total_beds:450, occupied_beds:380, referral_queue_length:30, latitude:45.304, longitude:-66.087,
+    specialists:[{id:'SP_014',name:'Dr. Roy',specialty:'Neurology',available_slots:1,current_wait_days:6}]},
 ];
 
 // simplified coastlines, [lon, lat]
@@ -432,9 +441,9 @@ const S = {
   base: qsApi || (/^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && !/github\.io$/.test(location.hostname)
     ? location.origin : store.get('rp.base') || 'http://localhost:8000'),
   online: null, aiLive: null,
-  hubs: [], sig: {}, prevLoad: {}, baseline: {}, dash: null,
+  hubs: [], sig: {}, baseline: {},
   surged: new Set(), mock: null, provErr: false,
-  patient: null, plan: null, choice: null, referral: null, preset: null, referrals: [],
+  patient: null, plan: null, choice: null, referral: null,
   running: false,
 };
 
@@ -469,9 +478,9 @@ const capScore = h => (1 - loadPct(h) / 100) * .7 + Math.max(0, 1 - h.referral_q
 const busy = p => p > 85 ? {word:'Very full', c:'var(--red)'} : p >= 60 ? {word:'Busy', c:'var(--slate)'} : {word:'Has room', c:'var(--blue)'};
 const urgTier = u => u >= 8 ? 'high' : u >= 4 ? 'med' : 'low';
 const WEIGHTS = {
-  high: {specialist:.7, capacity:.2, distance:.1, why:'High urgency - prioritized specialist availability'},
-  med:  {specialist:.2, capacity:.5, distance:.3, why:'Medium urgency - balanced capacity and distance'},
-  low:  {specialist:.1, capacity:.3, distance:.6, why:'Low urgency - prioritized proximity to patient'},
+  high: {specialist:.7, capacity:.2, distance:.1},
+  med:  {specialist:.2, capacity:.5, distance:.3},
+  low:  {specialist:.1, capacity:.3, distance:.6},
 };
 const availSpecs = (h, sp) => (h.specialists || []).filter(s => s.specialty.toLowerCase() === String(sp).toLowerCase() && s.available_slots > 0);
 function hubDistance(h, zip) {
@@ -482,8 +491,7 @@ function scoreHub(h, p) {
   const sp = p.primary_specialty_required, d = hubDistance(h, p.home_clinic_zip), cap = capScore(h);
   const n = availSpecs(h, sp).length, w = WEIGHTS[urgTier(p.urgency_score)];
   const score = Math.min(1, n / 3) * w.specialist + cap * w.capacity + Math.max(0, 1 - d / 400) * w.distance;
-  const notes = `${w.why}. Hub: ${h.name}, Distance: ${d.toFixed(1)}km, Capacity: ${cap.toFixed(2)}, Available ${sp} specialists: ${n}`;
-  return {hub:h, dist:d, cap, n, score, notes, eligible:true};
+  return {hub:h, dist:d, cap, n, score, eligible:true};
 }
 function pickSpecialist(h, sp, u) {
   const a = availSpecs(h, sp);
@@ -527,10 +535,10 @@ function mockTriage(p) {
   const MED = ['aspirin', 'metoprolol', 'nitroglycerin', 'heparin', 'ibuprofen', 'acetaminophen', 'warfarin', 'metformin'];
   const sym = SYM.filter(s => n.includes(s)).filter((s, i, a) => !a.some(o => o !== s && o.includes(s)));
   const risks = sp === 'Cardiology' && u >= 8 ? ['heart attack (STEMI)'] : has('appendic') ? ['burst appendix'] : sp === 'Orthopedics' ? ['ongoing joint damage'] : [];
-  return {...p, urgency_score:u, primary_specialty_required:sp, key_symptoms:sym, acute_risks:risks, current_medications:MED.filter(m => n.includes(m)), created_at:p.created_at || new Date().toISOString()};
+  return {...p, urgency_score:u, primary_specialty_required:sp, key_symptoms:sym, acute_risks:risks, current_medications:MED.filter(m => n.includes(m))};
 }
 function ensureMock() {
-  if (!S.mock) S.mock = {hubs:[], base:[], referrals:{}};
+  if (!S.mock) S.mock = {hubs:[], base:[]};
   S.mock.hubs = clone(S.hubs.length ? S.hubs : MOCK_HUBS);
   S.mock.base = clone(S.mock.hubs);
 }
@@ -546,11 +554,6 @@ async function mockApi(method, path, {body, query} = {}) {
     }
     return clone(M.hubs);
   }
-  if (path === '/dashboard') {
-    const tb = M.hubs.reduce((s, h) => s + h.total_beds, 0), ob = M.hubs.reduce((s, h) => s + h.occupied_beds, 0);
-    return {system_metrics:{total_hubs:M.hubs.length, total_beds:tb, occupied_beds:ob, bed_occupancy_rate:`${(ob / tb * 100).toFixed(1)}%`,
-      total_referrals_in_queue:M.hubs.reduce((s, h) => s + h.referral_queue_length, 0), total_referrals_processed:Object.keys(M.referrals).length}};
-  }
   if (path === '/triage') { await sleep(400); return mockTriage(body); }
   if (path === '/refer') {
     const p = body.urgency_score && body.primary_specialty_required ? body : mockTriage(body);
@@ -561,22 +564,13 @@ async function mockApi(method, path, {body, query} = {}) {
       if (!h) throw new HttpError(404, `Hub ${want} not found`);
       const sc = scoreHub(h, p), sp = pickSpecialist(h, p.primary_specialty_required, p.urgency_score);
       r.best = sc; r.specialist = sp; r.wait = estWait(h, sp, p.urgency_score);
-      r.best.notes = `Manually redirected by referring clinician to ${h.name}${suggested ? ` (RUSH suggested ${suggested.name}).` : '.'}`;
     }
     if (!r.best) throw new HttpError(400, `No hubs found offering specialty: ${p.primary_specialty_required}`);
     const id = 'REF_' + Math.random().toString(16).slice(2, 10).toUpperCase();
-    const ref = {referral_id:id, patient_id:p.patient_id, referring_clinic_zip:p.home_clinic_zip, target_hub_id:r.best.hub.hub_id,
+    return {referral_id:id, referring_clinic_zip:p.home_clinic_zip, target_hub_id:r.best.hub.hub_id,
       target_hub_name:r.best.hub.name, assigned_specialist_id:r.specialist ? r.specialist.id : null, urgency_score:p.urgency_score,
-      required_specialty:p.primary_specialty_required, distance_km:r.best.dist, estimated_wait_days:r.wait, routing_score:r.best.score,
-      status:'routed', created_at:new Date().toISOString(), routing_notes:r.best.notes,
+      required_specialty:p.primary_specialty_required, distance_km:r.best.dist, estimated_wait_days:r.wait, created_at:new Date().toISOString(),
       manual_override:!!suggested && r.best.hub.hub_id !== suggested.hub_id, suggested_hub_id:suggested && suggested.hub_id, suggested_hub_name:suggested && suggested.name};
-    M.referrals[id] = ref;
-    return clone(ref);
-  }
-  if (path.startsWith('/referral/')) {
-    const ref = M.referrals[decodeURIComponent(path.slice(10))];
-    if (!ref) throw new HttpError(404, 'Referral not found');
-    return clone(ref);
   }
   if (path === '/simulate/update-capacity') {
     const h = M.hubs.find(x => x.hub_id === query.hub_id);
@@ -724,7 +718,6 @@ async function loop() {
 }
 
 /* ================= step 1 ================= */
-const newPid = () => { S.pid = `PAT_NS_${Math.floor(100 + Math.random() * 900)}`; };
 function normZip(v) {
   const s = String(v || '').toUpperCase().replace(/\s+/g, '');
   return s.length === 6 ? `${s.slice(0, 3)} ${s.slice(3)}` : String(v || '').trim().toUpperCase();
@@ -750,7 +743,6 @@ function usePreset(i) {
   const p = PRESETS[i];
   $('#notes').value = p.notes;
   $('#zip').value = p.zip;
-  newPid();
   $$('.ex').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
   $('#notesErr').hidden = true; $('#notes').removeAttribute('aria-invalid');
   updateZipHelp();
@@ -760,7 +752,6 @@ function usePreset(i) {
 async function findHospital() {
   if (S.running) return;
   const notes = $('#notes').value.trim(), zip = normZip($('#zip').value);
-  if (!S.pid) newPid();
   if (!notes) return fieldErr('notes', 'Paste the doctor\'s notes here.', `You skipped the notes. ${K('PASTE THEM')} first.`);
   if (!zip) return fieldErr('zip', 'Type a postal code, like B1P 5E7.', `No postal code. ${K('TYPE IT IN')}, then hit FIND HOSPITAL.`);
   $('#zip').value = zip;
@@ -771,7 +762,7 @@ async function findHospital() {
   $('#findErr').hidden = true;
   cmd('STEP 1 OF 3', 'Hang on. Reading the notes and checking hospitals', 'busy');
 
-  const patient = {patient_id:S.pid, clinical_notes:notes, home_clinic_zip:zip};
+  const patient = {clinical_notes:notes, home_clinic_zip:zip};
   const triP = api('POST', '/triage', {body:patient, timeout:35000});
   const hubsP = api('GET', '/hubs');
   triP.catch(() => {}); hubsP.catch(() => {});
@@ -785,7 +776,7 @@ async function findHospital() {
     S.patient = tri; S.plan = plan;
     renderMatch();
     renderHospitals();
-    log(`Matched ${tri.patient_id} (urgency ${tri.urgency_score}/10) to ${plan.best.hub.name}.`);
+    log(`Matched patient (urgency ${tri.urgency_score}/10) to ${plan.best.hub.name}.`);
     show('v2', $('#hospName'));
   } catch (e) {
     const msg = e instanceof HttpError ? `The server said: ${e.message} (error ${e.status}).` : e.message;
@@ -793,7 +784,7 @@ async function findHospital() {
     box.innerHTML = `<b>Couldn't find a hospital.</b>${esc(msg)}`;
     box.hidden = false;
     cmd('STEP 1 OF 3', `That didn't work. Read the red box, fix it, hit ${K('FIND HOSPITAL')} again.`, 'bad');
-    log(`Couldn't match ${patient.patient_id}: ${msg}`, true);
+    log(`Couldn't match: ${msg}`, true);
   } finally {
     S.running = false;
     btn.disabled = false; btn.textContent = 'Find hospital →';
@@ -912,7 +903,7 @@ function choose(id) {
   togglePicker(false);
   $('#hospName').focus({preventScroll:true});
   window.scrollTo({top:0, behavior: reduced() ? 'auto' : 'smooth'});
-  log(S.choice ? `Override: sending ${S.patient.patient_id} to ${target().hub.name} instead of ${S.plan.best.hub.name}.` : 'Back to RUSH\'s pick.');
+  log(S.choice ? `Override: sending to ${target().hub.name} instead of ${S.plan.best.hub.name}.` : 'Back to RUSH\'s pick.');
 }
 function togglePicker(open = $('#picker').hidden) {
   $('#picker').hidden = !open;
@@ -963,17 +954,8 @@ function drawMap(pick, animate) {
   const pll = pick.latitude != null ? [pick.latitude, pick.longitude] : ZIPS[pick.postal_code];
   const [bx, by] = pll ? proj(pll[0], pll[1]) : [0, 0];
 
-  let cx = 0, cy = 0, coordsFound = false;
-  if (p.latitude != null && p.longitude != null) {
-    [cx, cy] = proj(p.latitude, p.longitude);
-    coordsFound = true;
-  } else {
-    const z = ZIPS[p.home_clinic_zip];
-    if (z) {
-      [cx, cy] = proj(z[0], z[1]);
-      coordsFound = true;
-    }
-  }
+  const z = ZIPS[p.home_clinic_zip], coordsFound = !!z;
+  let [cx, cy] = z ? proj(z[0], z[1]) : [0, 0];
 
   if (coordsFound) {
     const near = S.hubs.find(h => { const ll = h.latitude != null ? [h.latitude, h.longitude] : ZIPS[h.postal_code]; if (!ll) return false; const [hx, hy] = proj(ll[0], ll[1]); return Math.hypot(hx - cx, hy - cy) < 10; });
@@ -1008,7 +990,6 @@ function drawMap(pick, animate) {
   }
   svg.innerHTML = MAP_BASE + route + hosp + clinic;
   const grey = `Grey hospitals don't offer ${plainSp(sp)} care.`;
-  const z = ZIPS[p.home_clinic_zip];
   $('#mapCap').textContent = coordsFound
     ? (hubDistance(pick, p.home_clinic_zip) < 1
       ? `The clinic and ${pick.name} are both in ${townOf(pick)}, so there's no drive. ${grey}`
@@ -1063,7 +1044,6 @@ function receiptRows(ref) {
   const wait = `${plural(ref.estimated_wait_days, 'day')}, around ${inDays(ref.estimated_wait_days)}`;
   return [
     ['Referral #', ref.referral_id],
-    ['Patient', ref.patient_id],
     ['From', `${ref.referring_clinic_zip}${z ? `, ${z[2]}` : ''}`],
     ['To', ref.target_hub_name],
     ...(ref.manual_override ? [['Chosen by', `You (RUSH suggested ${ref.suggested_hub_name})`]] : []),
@@ -1087,7 +1067,7 @@ async function copyReceipt() {
 }
 function newPatient() {
   S.patient = null; S.plan = null; S.choice = null; S.referral = null;
-  $('#notes').value = ''; $('#zip').value = ''; newPid(); updateZipHelp();
+  $('#notes').value = ''; $('#zip').value = ''; updateZipHelp();
   $$('.ex').forEach(b => b.setAttribute('aria-pressed', 'false'));
   $('#findErr').hidden = true;
   renderHospitals();
@@ -1156,7 +1136,6 @@ async function resetHospitals() {
 
 /* ================= wiring ================= */
 function boot() {
-  newPid();
   S.view = 'v1';
   $('#zipList').innerHTML = Object.entries(ZIPS).map(([z, v]) => `<option value="${z}">${esc(v[2])}</option>`).join('');
   renderConn();
