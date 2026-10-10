@@ -138,6 +138,17 @@ The black bar at the top always tells you the one thing to do next. Follow it.
 
 `Ctrl + Enter` always presses the big green button. The "Hospital capacity (live)" drawer at the bottom shows how full each hospital is; its **Demo: make a hospital busy** button fills one up so you can watch the match change live.
 
+### 4. Put it online (Render, free)
+
+One web service serves the dashboard and the API from the same URL. `render.yaml` holds the settings.
+
+1. Push to GitHub (`git push origin main`).
+2. Sign in at https://render.com with your GitHub account.
+3. **New → Blueprint**, pick this repo, then **Apply**. Leave `ANTHROPIC_API_KEY` blank or paste a key.
+4. Wait for the build to finish, then open `https://rush-xxxx.onrender.com`.
+
+Every `git push origin main` redeploys automatically. The free tier sleeps after 15 minutes idle, so the first visit takes ~1 minute (the page shows Practice mode, then flips to Connected). Referrals are kept in memory and reset on each redeploy.
+
 ## Example Use Cases
 
 ### High Urgency Cardiac Case (Cape Breton -> Halifax)

@@ -4,6 +4,8 @@ B2B AI SaaS for Nova Scotia Healthcare
 """
 from fastapi import FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pathlib import Path
 from contextlib import asynccontextmanager
 import uuid
 from typing import Optional
@@ -47,9 +49,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+ROOT = Path(__file__).resolve().parent.parent  # project folder (index.html, SH.png)
+
+@app.get("/", include_in_schema=False)
+async def ui():
+    """Serve the dashboard, so one deployment hosts both the page and the API."""
+    return FileResponse(ROOT / "index.html", headers={"Cache-Control": "no-store"})
+
+@app.get("/SH.png", include_in_schema=False)
+async def logo():
+    return FileResponse(ROOT / "SH.png")
+
+@app.get("/info")
 async def root():
-    """Health check endpoint."""
+    """Service info."""
     return {
         "service": "RUSH",
         "description": "AI-powered healthcare referral routing for Nova Scotia",

@@ -428,7 +428,9 @@ if (qsApi && /^https?:\/\/[^\s]+$/i.test(qsApi)) {
   try { history.replaceState(null, '', location.pathname + location.hash); } catch {}
 }
 const S = {
-  base: store.get('rp.base') || qsApi || 'http://localhost:8000',
+  // hosted (e.g. on Render) the API lives on the same site as this page; locally it's on :8000
+  base: qsApi || (/^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && !/github\.io$/.test(location.hostname)
+    ? location.origin : store.get('rp.base') || 'http://localhost:8000'),
   online: null, aiLive: null,
   hubs: [], sig: {}, prevLoad: {}, baseline: {}, dash: null,
   surged: new Set(), mock: null, provErr: false,

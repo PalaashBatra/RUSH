@@ -1,0 +1,16 @@
+# One-click deploy on Render: dashboard + API on one URL.
+# Render dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: rush
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7          # pinned pydantic has no wheels for 3.14 yet
+      - key: ANTHROPIC_API_KEY
+        sync: false            # optional: Render asks for it; leave blank for keyword triage
