@@ -1,6 +1,9 @@
+from enum import Enum
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator
-from geopy.distance import geodesic  # We'll mock distance calculation
+from pydantic import BaseModel, Field
+from geopy.distance import geodesic
+
+SIMULATED_NOTE = "MOCK DATA: capabilities, stock and transport are simulated for demo purposes, not real hospital data."
 
 class Specialist(BaseModel):
     """A specialist doctor at a healthcare hub."""
@@ -11,11 +14,53 @@ class Specialist(BaseModel):
     current_wait_days: int = Field(default=7, ge=0)
 
 
+class StockLevel(str, Enum):
+    ADEQUATE = "adequate"
+    LOW = "low"
+    CRITICAL = "critical"
+    NONE = "none"
+
+
+class BloodStock(BaseModel):
+    """Blood product stock on hand. MOCK levels, not real inventory."""
+    red_cells: StockLevel = StockLevel.ADEQUATE
+    plasma: StockLevel = StockLevel.ADEQUATE
+    platelets: StockLevel = StockLevel.ADEQUATE
+    o_negative: StockLevel = StockLevel.ADEQUATE  # uncrossmatched emergency release
+
+
+class OnCall(BaseModel):
+    """Specialists on call right now (MOCK)."""
+    neurology: bool = False
+    vascular_surgery: bool = False
+    trauma_surgery: bool = False
+
+
+class TransportOptions(BaseModel):
+    """How a patient can reach this hub (MOCK)."""
+    ground: bool = True
+    air: bool = False               # helipad / air ambulance landing
+    air_weather_hold: bool = False  # MOCK weather flag: air transport grounded
+
+
+class CriticalCapabilities(BaseModel):
+    """Time-critical capabilities used for acuity-first routing. All values MOCK."""
+    ct_available: bool = False
+    cta_available: bool = False          # CT angiography, needed to confirm large vessel occlusion
+    thrombolysis_capable: bool = False   # can give IV tPA/TNK
+    evt_capable: bool = False            # endovascular thrombectomy
+    on_call: OnCall = Field(default_factory=OnCall)
+    or_available: bool = False           # an operating room is free now
+    blood: BloodStock = Field(default_factory=BloodStock)
+    transport: TransportOptions = Field(default_factory=TransportOptions)
+
+
 class HealthcareHub(BaseModel):
-    """A hospital or major clinic in Nova Scotia that can accept referrals."""
+    """A hospital that can accept referrals or transfers. All operational data is MOCK."""
     hub_id: str = Field(..., description="Unique hub identifier")
     name: str
     postal_code: str  # For distance calculation
+    province: str = "NS"
     specialties: List[str] = Field(..., description="List of specialties available at this hub")
 
     # Current capacity metrics (simulated - in real app this would come from an API)
@@ -29,6 +74,12 @@ class HealthcareHub(BaseModel):
 
     # Specialists at this hub
     specialists: List[Specialist] = Field(default_factory=list)
+
+    # Time-critical capabilities (MOCK)
+    critical: CriticalCapabilities = Field(default_factory=CriticalCapabilities)
+
+    simulated: bool = True
+    data_note: str = SIMULATED_NOTE
 
     class Config:
         json_schema_extra = {
@@ -97,6 +148,7 @@ class HealthcareHub(BaseModel):
             "B2N 0A1": (45.6000, -62.1000),  # Antigonish
             "B1M 1A1": (46.0000, -60.5000),  # Glace Bay
             "B0J 1S0": (44.3000, -64.7000),  # Lunenburg
+            "E2L 4L2": (45.3040, -66.0870),  # Saint John NB (approximate)
         }
 
         target_coords = zip_to_coords.get(target_zip)

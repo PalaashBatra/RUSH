@@ -10,7 +10,36 @@ from typing import List, Optional, Tuple, Dict
 from datetime import datetime
 
 from app.models.patient import Patient
-from app.models.hub import HealthcareHub, Specialist
+from app.models.hub import (HealthcareHub, Specialist, CriticalCapabilities, OnCall,
+                            BloodStock, TransportOptions, StockLevel as L)
+
+# ---------------------------------------------------------------------------
+# MOCK time-critical capabilities. Invented for the demo, NOT real hospital data.
+# Only the "EVT at QEII and Saint John" pattern reflects public information;
+# every other value (on-call, OR, blood stock, transport) is simulated.
+# ---------------------------------------------------------------------------
+def _caps(ct=True, cta=False, tpa=True, evt=False, neuro=False, vasc=False, trauma=False,
+          or_free=True, blood=("adequate",) * 4, air=False):
+    return CriticalCapabilities(
+        ct_available=ct, cta_available=cta, thrombolysis_capable=tpa, evt_capable=evt,
+        on_call=OnCall(neurology=neuro, vascular_surgery=vasc, trauma_surgery=trauma),
+        or_available=or_free,
+        blood=BloodStock(red_cells=L(blood[0]), plasma=L(blood[1]), platelets=L(blood[2]), o_negative=L(blood[3])),
+        transport=TransportOptions(ground=True, air=air),
+    )
+
+MOCK_CRITICAL = {
+    "HAL_QEII":   _caps(cta=True, evt=True, neuro=True, vasc=True, trauma=True, air=True),
+    "SJ_REG":     _caps(cta=True, evt=True, neuro=True, vasc=True, trauma=True, air=True),
+    "CB_REG":     _caps(cta=True, vasc=True, trauma=True, air=True),
+    "TRU_COLCH":  _caps(cta=True, blood=("adequate", "adequate", "low", "adequate"), air=True),
+    "VALLEY_REG": _caps(cta=True, trauma=True, air=True),
+    "SW_REG":     _caps(trauma=True, blood=("low", "critical", "none", "critical"), air=True),  # low stock: demo reroute
+    "YAR_REG":    _caps(cta=True, trauma=True, air=True),
+    "AMH_REG":    _caps(or_free=False, blood=("low", "low", "none", "low")),
+    "GLW_REG":    _caps(cta=True, trauma=True, air=True),
+    "ANT_REG":    _caps(blood=("adequate", "low", "none", "adequate")),
+}
 from app.models.referral import Referral
 
 
@@ -30,7 +59,6 @@ class RoutingEngine:
 
     def _load_mock_hubs(self) -> Dict[str, HealthcareHub]:
         """Load mock healthcare hubs for Nova Scotia."""
-        from app.models.hub import HealthcareHub, Specialist
 
         # Realistic Nova Scotia healthcare hubs
         hubs = {
@@ -164,7 +192,26 @@ class RoutingEngine:
                     Specialist(id="SP_013", name="Dr. King", specialty="Orthopedics", available_slots=2, current_wait_days=7),
                 ]
             ),
+            # Cross-border option for thrombectomy (Atlantic Canada). Capacity numbers are MOCK.
+            "SJ_REG": HealthcareHub(
+                hub_id="SJ_REG",
+                name="Saint John Regional Hospital (NB)",
+                postal_code="E2L 4L2",
+                province="NB",
+                specialties=["Neurology", "Cardiology", "General Surgery", "Emergency Medicine"],
+                total_beds=450,
+                occupied_beds=380,
+                referral_queue_length=30,
+                latitude=45.3040,
+                longitude=-66.0870,
+                specialists=[
+                    Specialist(id="SP_014", name="Dr. Roy", specialty="Neurology", available_slots=1, current_wait_days=6),
+                ]
+            ),
         }
+        for hub_id, caps in MOCK_CRITICAL.items():
+            if hub_id in hubs:
+                hubs[hub_id].critical = caps
         return hubs
 
     def find_optimal_hub(self, patient: Patient) -> Tuple[Optional[HealthcareHub], Optional[Specialist], float, str]:

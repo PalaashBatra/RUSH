@@ -30,7 +30,6 @@ VENV = ROOT / "venv"
 VENV_PY = VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 REQUIREMENTS = ROOT / "requirements.txt"
 STAMP = VENV / ".requirements.sha256"
-INDEX = ROOT / "index.html"
 
 # pydantic 2.9 / pydantic-core ship wheels for 3.9-3.13 only
 MIN_PY, MAX_PY = (3, 9), (3, 13)
@@ -111,16 +110,23 @@ def health(port: int):
         return None
 
 
-class UIHandler(http.server.BaseHTTPRequestHandler):
-    """Serves index.html only, so nothing else in the project (like .env) is exposed."""
+# the only files the UI server will hand out, so nothing else in the project (like .env) is exposed
+UI_FILES = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/index.html": ("index.html", "text/html; charset=utf-8"),
+    "/SH.png": ("SH.png", "image/png"),
+}
 
+
+class UIHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.split("?", 1)[0] not in ("/", "/index.html"):
+        entry = UI_FILES.get(self.path.split("?", 1)[0])
+        if not entry or not (ROOT / entry[0]).exists():
             self.send_error(404)
             return
-        body = INDEX.read_bytes()  # read per request so edits show up on refresh
+        body = (ROOT / entry[0]).read_bytes()  # read per request so edits show up on refresh
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", entry[1])
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
