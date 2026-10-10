@@ -52,6 +52,7 @@ async def health_check():
         "system": {
             "hubs_registered": len(routing_engine.get_all_hubs()),
             "ai_triage_available": not triage_service.mock_mode,
+            "ai_model": None if triage_service.mock_mode else triage_service.model,
             "routing_engine": "operational",
         },
     }

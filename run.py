@@ -205,9 +205,9 @@ def serve(args) -> None:
     threading.Thread(target=RUNNING["ui"].serve_forever, daemon=True).start()
 
     api_url = f"http://localhost:{api_port}"
-    ai = (health(api_port) or {}).get("system", {}).get("ai_triage_available")
-    if ai:
-        triage = "api key found, claude will be tried (falls back to keywords if a call fails)"
+    system = (health(api_port) or {}).get("system", {})
+    if system.get("ai_triage_available"):
+        triage = f"claude ({system.get('ai_model') or 'unknown model'}), falls back to keywords if a call fails"
     else:
         triage = "keyword matching (put ANTHROPIC_API_KEY=... in a .env file to use claude)"
 
