@@ -27,6 +27,11 @@ class Referral(BaseModel):
     target_hub_name: Optional[str] = None
     assigned_specialist_id: Optional[str] = None
 
+    # Set when the referring clinician overrides RUSH's suggested hub
+    manual_override: bool = False
+    suggested_hub_id: Optional[str] = None
+    suggested_hub_name: Optional[str] = None
+
     # Triage results from AI
     urgency_score: Optional[int] = Field(None, ge=1, le=10)
     required_specialty: Optional[str] = None

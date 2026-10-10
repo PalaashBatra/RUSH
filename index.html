@@ -102,6 +102,21 @@ kbd{font:600 12px/1 var(--mono);padding:3px 5px;border-radius:3px;background:var
 .fact .v{font-size:24px;font-weight:900;line-height:1.25}
 .fact .s{font-size:14px;color:var(--ink-2)}
 .check{margin-top:16px;padding:14px 18px;border-radius:8px;font-weight:700;background:#ffefc2;border:2px solid #e0a800;color:#4d3a00}
+.override{margin-top:12px;display:inline-flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:center;padding:8px 14px;border-radius:8px;background:#ffefc2;color:#4d3a00;font-size:15px;font-weight:700}
+.linkbtn{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;text-underline-offset:3px;font-weight:800;font-size:15px}
+.picker{margin-top:16px;padding:20px;scroll-margin-top:190px}
+.picker h3{font-size:20px;font-weight:900}
+.picker .sub{color:var(--ink-2);font-size:15px;margin:2px 0 12px}
+.picker h4{margin:16px 0 6px;font-size:13px;font-weight:800;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.opt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 14px;align-items:center;width:100%;text-align:left;padding:12px 14px;margin-top:8px;border:2px solid var(--rule);border-radius:8px;background:var(--paper)}
+.opt:hover{border-color:var(--green)}
+.opt[aria-pressed=true]{border-color:var(--green);background:var(--green-tint);box-shadow:inset 0 0 0 1px var(--green)}
+.opt .on{font-weight:800;line-height:1.25}
+.opt .om{grid-column:1/-1;font-size:14px;color:var(--ink-2)}
+.opt .ot{font-size:13px;font-weight:800;padding:3px 9px 1px;border-radius:99px;white-space:nowrap}
+.ot.rush{background:var(--green);color:#fff}
+.ot.mine{background:var(--yellow);color:var(--ink)}
+.opt.no .on,.opt.no .om{opacity:.65}
 .why{margin-top:16px;color:var(--ink-2);font-size:16px}
 .vs{margin-top:10px;font-size:16px;padding:10px 14px;border-left:5px solid var(--green);background:var(--green-tint);border-radius:0 6px 6px 0}
 .vs .worse{color:#8a5a00}
@@ -245,9 +260,10 @@ details.hosp > summary .muted{font-weight:400;font-size:14px;margin-left:6px}
   <section id="v2" aria-label="Review and send" hidden>
     <div class="card answer">
       <span class="urg" id="urgPill"></span>
-      <p class="to">Send this patient to</p>
+      <p class="to" id="toLabel">Send this patient to</p>
       <h2 id="hospName" tabindex="-1"></h2>
       <p class="sub" id="hospSub"></p>
+      <p class="override" id="overrideNote" hidden></p>
       <div class="facts">
         <div class="fact"><div class="k">Drive</div><div class="v num" id="fDist"></div><div class="s" id="fDistS"></div></div>
         <div class="fact"><div class="k">Wait</div><div class="v num" id="fWait"></div><div class="s" id="fWaitS"></div></div>
@@ -259,7 +275,15 @@ details.hosp > summary .muted{font-weight:400;font-size:14px;margin-left:6px}
     <p class="vs" id="verdict" hidden></p>
     <div class="actions">
       <button class="btn-huge" id="sendBtn" type="button">Send referral →</button>
-      <div class="actions-row"><button class="btn-ghost" id="backBtn" type="button">← Change the notes</button></div>
+      <div class="actions-row">
+        <button class="btn-ghost" id="pickBtn" type="button" aria-expanded="false" aria-controls="picker">Send somewhere else</button>
+        <button class="btn-ghost" id="backBtn" type="button">← Change the notes</button>
+      </div>
+    </div>
+    <div class="card picker" id="picker" hidden>
+      <h3>Where should it go?</h3>
+      <p class="sub">Tap a hospital. Drive and wait update right away.</p>
+      <div id="pickList"></div>
     </div>
     <div class="alert" id="sendErr" role="alert" hidden></div>
     <details class="more" id="more">
@@ -348,9 +372,10 @@ const ZIPS = {
   'B2N 0A1': [45.6000, -62.1000, 'Antigonish'],
   'B1M 1A1': [46.0000, -60.5000, 'Glace Bay'],
   'B0J 1S0': [44.3000, -64.7000, 'Lunenburg'],
+  'E2L 4L2': [45.3040, -66.0870, 'Saint John NB'],
 };
 const TOWN = {HAL_QEII:['Halifax','r'], TRU_COLCH:['Truro','r'], CB_REG:['Sydney','l'], VALLEY_REG:['Kentville','l'], SW_REG:['Bridgewater','l']};
-const townOf = h => (TOWN[h.hub_id] || [h.name])[0];
+const townOf = h => (TOWN[h.hub_id] || [])[0] || (ZIPS[h.postal_code] || [])[2] || '';
 const PLAIN = {'Cardiology':'heart', 'Neurology':'brain and nerve', 'Orthopedics':'bone and joint', 'Oncology':'cancer',
   'General Surgery':'surgery', 'General Medicine':'general medicine', 'Emergency Medicine':'emergency', 'Maternity':'pregnancy and birth'};
 const plainSp = sp => PLAIN[sp] || String(sp).toLowerCase();
@@ -402,7 +427,7 @@ const S = {
   online: null, aiLive: null,
   hubs: [], sig: {}, prevLoad: {}, baseline: {}, dash: null,
   surged: new Set(), mock: null, provErr: false,
-  patient: null, plan: null, referral: null, preset: null, referrals: [],
+  patient: null, plan: null, choice: null, referral: null, preset: null, referrals: [],
   running: false,
 };
 
@@ -523,12 +548,21 @@ async function mockApi(method, path, {body, query} = {}) {
   if (path === '/refer') {
     const p = body.urgency_score && body.primary_specialty_required ? body : mockTriage(body);
     const r = route(p, M.hubs);
+    const want = query && query.hub_id, suggested = r.best ? r.best.hub : null;
+    if (want && (!suggested || want !== suggested.hub_id)) {     // clinician override
+      const h = M.hubs.find(x => x.hub_id === want);
+      if (!h) throw new HttpError(404, `Hub ${want} not found`);
+      const sc = scoreHub(h, p), sp = pickSpecialist(h, p.primary_specialty_required, p.urgency_score);
+      r.best = sc; r.specialist = sp; r.wait = estWait(h, sp, p.urgency_score);
+      r.best.notes = `Manually redirected by referring clinician to ${h.name}${suggested ? ` (RUSH suggested ${suggested.name}).` : '.'}`;
+    }
     if (!r.best) throw new HttpError(400, `No hubs found offering specialty: ${p.primary_specialty_required}`);
     const id = 'REF_' + Math.random().toString(16).slice(2, 10).toUpperCase();
     const ref = {referral_id:id, patient_id:p.patient_id, referring_clinic_zip:p.home_clinic_zip, target_hub_id:r.best.hub.hub_id,
       target_hub_name:r.best.hub.name, assigned_specialist_id:r.specialist ? r.specialist.id : null, urgency_score:p.urgency_score,
       required_specialty:p.primary_specialty_required, distance_km:r.best.dist, estimated_wait_days:r.wait, routing_score:r.best.score,
-      status:'routed', created_at:new Date().toISOString(), routing_notes:r.best.notes};
+      status:'routed', created_at:new Date().toISOString(), routing_notes:r.best.notes,
+      manual_override:!!suggested && r.best.hub.hub_id !== suggested.hub_id, suggested_hub_id:suggested && suggested.hub_id, suggested_hub_name:suggested && suggested.name};
     M.referrals[id] = ref;
     return clone(ref);
   }
@@ -619,7 +653,8 @@ const K = w => `<mark>${w}</mark>`;
 function cmdForView() {
   if (S.view === 'v1') return cmd('STEP 1 OF 3', `Paste the notes. Add the postal code. Hit ${K('FIND HOSPITAL')}.`);
   if (S.view === 'v2') {
-    const h = S.plan.best.hub, src = triageSource(S.patient);
+    const h = target().hub, src = triageSource(S.patient);
+    if (S.choice) return cmd('STEP 2 OF 3 · YOUR CALL', `Sending to ${esc(h.name)} instead. Hit ${K('SEND REFERRAL')}.`, 'warn');
     return src.check
       ? cmd('STEP 2 OF 3 · CHECK FIRST', `Make sure urgency ${S.patient.urgency_score}/10 is right. Then hit ${K('SEND REFERRAL')}.`, 'warn')
       : cmd('STEP 2 OF 3', `Send to ${esc(townOf(h))}? Looks right? Hit ${K('SEND REFERRAL')}.`);
@@ -656,7 +691,7 @@ function renderHospitals(changed = new Set()) {
     if (!row) { row = document.createElement('div'); row.className = 'hrow'; row.dataset.id = h.hub_id; box.appendChild(row); }
     const p = loadPct(h), b = busy(p);
     row.innerHTML = `<div><div class="hn">${esc(h.name)}</div>
-        <div class="svc">${TOWN[h.hub_id] ? esc(townOf(h)) + ' · ' : ''}${(h.specialties || []).map(s => s === need ? `<span class="need">${esc(s)}</span>` : esc(s)).join(', ')}</div></div>
+        <div class="svc">${townOf(h) ? esc(townOf(h)) + ' · ' : ''}${(h.specialties || []).map(s => s === need ? `<span class="need">${esc(s)}</span>` : esc(s)).join(', ')}</div></div>
       <div class="full"><div class="bar" style="--c:${b.c}"><i style="width:${Math.min(100, p).toFixed(1)}%"></i></div>
         <div class="lbl"><b>${p.toFixed(0)}%</b> <span class="muted">${b.word.toLowerCase()}</span></div></div>
       <div class="q">${h.referral_queue_length} waiting</div>`;
@@ -723,7 +758,7 @@ async function findHospital() {
   if (!zip) return fieldErr('zip', 'Type a postal code, like B1P 5E7.', `No postal code. ${K('TYPE IT IN')}, then hit FIND HOSPITAL.`);
   $('#zip').value = zip;
 
-  S.running = true; S.referral = null;
+  S.running = true; S.referral = null; S.choice = null;
   const btn = $('#findBtn');
   btn.disabled = true; btn.textContent = 'Reading the notes…';
   $('#findErr').hidden = true;
@@ -782,46 +817,94 @@ function whyText(p, r, hub, n) {
   const next = others.length ? ` Runner-up: ${others[0].hub.name}.` : ` It's the only one offering ${sp} care.`;
   return `Why: ${rule} ${hub.name} is ${Math.round(loadPct(hub))}% full${n ? ` with ${n} specialist${n === 1 ? '' : 's'} free` : ''}.${next}`;
 }
-function halifaxVerdict() {
+// where the referral will go: RUSH's pick, or the hospital the clinician chose instead
+function target() {
+  const r = S.plan, p = S.patient;
+  const h = S.choice && hubById(S.choice);
+  if (!h || h.hub_id === r.best.hub.hub_id) return {hub:r.best.hub, dist:r.best.dist, specialist:r.specialist, wait:r.wait, n:r.best.n, mine:false};
+  const sp = pickSpecialist(h, p.primary_specialty_required, p.urgency_score);
+  return {hub:h, dist:hubDistance(h, p.home_clinic_zip), specialist:sp, wait:estWait(h, sp, p.urgency_score),
+    n:availSpecs(h, p.primary_specialty_required).length, mine:true, offers:(h.specialties || []).includes(p.primary_specialty_required)};
+}
+function halifaxVerdict(t) {
   const p = S.patient, sp = p.primary_specialty_required, u = p.urgency_score;
   const hal = hubById('HAL_QEII') || S.hubs.find(h => /^B3/.test(h.postal_code));
   if (!hal) return '';
-  const pick = S.plan.best.hub;
-  if (pick.hub_id === hal.hub_id) return '<b>Halifax is the right call here.</b>';
+  if (t.hub.hub_id === hal.hub_id) return t.mine ? '' : '<b>Halifax is the right call here.</b>';
   const offers = (hal.specialties || []).includes(sp);
-  if (!offers) return `<b>Halifax doesn't offer ${esc(plainSp(sp))} care in this system.</b> RUSH sends them where it's available.`;
+  if (!offers) return `<b>Halifax doesn't offer ${esc(plainSp(sp))} care in this system.</b>`;
   const nvDist = hubDistance(hal, p.home_clinic_zip), nvWait = estWait(hal, pickSpecialist(hal, sp, u), u);
-  const dKm = Math.round(S.plan.best.dist) - Math.round(nvDist), dD = S.plan.wait - nvWait;
+  const dKm = Math.round(t.dist) - Math.round(nvDist), dD = t.wait - nvWait;
   const km = dKm < 0 ? `<b>${-dKm} km less driving</b>` : dKm > 0 ? `<b class="worse">${dKm} km more driving</b>` : '<b>the same drive</b>';
   const days = dD < 0 ? `<b>${plural(-dD, 'day')} less waiting</b>` : dD > 0 ? `<b class="worse">${plural(dD, 'day')} more waiting</b>` : 'the same wait';
   return `vs. Halifax: ${km} and ${days}.`;
 }
-function renderMatch() {
-  const p = S.patient, r = S.plan, best = r.best, hub = best.hub, b = busy(loadPct(hub));
+function renderTarget() {
+  const p = S.patient, r = S.plan, t = target(), hub = t.hub, b = busy(loadPct(hub));
   const pill = $('#urgPill');
   pill.className = `urg ${r.tier}`;
   pill.textContent = `${p.urgency_score}/10 · ${TIER_NAME[r.tier]}`;
+  $('#toLabel').textContent = t.mine ? 'Your pick: send this patient to' : 'Send this patient to';
   $('#hospName').textContent = hub.name;
-  $('#hospSub').textContent = `${townOf(hub)} · ${r.specialist ? `${r.specialist.name} can take them` : 'joins the waiting list'} · ${Math.round(loadPct(hub))}% full (${b.word.toLowerCase()})`;
+  $('#hospSub').textContent = `${townOf(hub) ? townOf(hub) + ' · ' : ''}${t.specialist ? `${t.specialist.name} can take them` : 'joins the waiting list'} · ${Math.round(loadPct(hub))}% full (${b.word.toLowerCase()})`;
+  const on = $('#overrideNote');
+  on.hidden = !t.mine;
+  if (t.mine) on.innerHTML = `${t.offers ? '' : `⚠ Doesn't list ${esc(plainSp(p.primary_specialty_required))} care. `}RUSH suggested ${esc(r.best.hub.name)}. <button class="linkbtn" type="button" id="useRush">Use RUSH's pick</button>`;
   const known = !!ZIPS[p.home_clinic_zip];
-  $('#fDist').textContent = `${best.dist.toFixed(0)} km`;
-  $('#fDistS').textContent = known ? driveText(best.dist) : 'distance is a guess';
-  $('#fWait').textContent = plural(r.wait, 'day');
-  $('#fWaitS').textContent = `around ${inDays(r.wait)}`;
+  $('#fDist').textContent = `${t.dist.toFixed(0)} km`;
+  $('#fDistS').textContent = known ? driveText(t.dist) : 'distance is a guess';
+  $('#fWait').textContent = plural(t.wait, 'day');
+  $('#fWaitS').textContent = `around ${inDays(t.wait)}`;
   $('#fNeed').textContent = p.primary_specialty_required;
   $('#fNeedS').textContent = plainSp(p.primary_specialty_required) + ' care';
-
+  $('#whyText').textContent = t.mine ? `RUSH's reasoning for its own pick: ${whyText(p, r, r.best.hub, r.best.n).replace(/^Why: /, '')}` : whyText(p, r, hub, t.n);
+  const v = halifaxVerdict(t);
+  $('#verdict').innerHTML = v; $('#verdict').hidden = !v;
+  if ($('#more').open) drawMap(hub, false);
+  renderPicker();
+  if (S.view === 'v2') cmdForView();
+}
+function renderPicker() {
+  const p = S.patient, r = S.plan, sp = p.primary_specialty_required, cur = target().hub.hub_id;
+  const opt = h => {
+    const d = hubDistance(h, p.home_clinic_zip), offers = (h.specialties || []).includes(sp);
+    const s = pickSpecialist(h, sp, p.urgency_score), w = estWait(h, s, p.urgency_score);
+    const isRush = h.hub_id === r.best.hub.hub_id, isCur = h.hub_id === cur;
+    const tag = isRush ? '<span class="ot rush">RUSH pick</span>' : isCur ? '<span class="ot mine">Your pick</span>' : '';
+    return `<button class="opt${offers ? '' : ' no'}" type="button" data-id="${esc(h.hub_id)}" aria-pressed="${isCur}">
+      <span class="on">${esc(h.name)}</span>${tag}
+      <span class="om">${townOf(h) ? esc(townOf(h)) + ' · ' : ''}${d.toFixed(0)} km · ${offers ? `~${plural(w, 'day')} wait` : `no ${esc(plainSp(sp))} care`} · ${Math.round(loadPct(h))}% full</span></button>`;
+  };
+  const ranked = r.ranked.map(x => x.hub), others = S.hubs.filter(h => !(h.specialties || []).includes(sp));
+  $('#pickList').innerHTML = ranked.map(opt).join('')
+    + (others.length ? `<h4>Don't offer ${esc(plainSp(sp))} care</h4>` + others.map(opt).join('') : '');
+}
+function choose(id) {
+  S.choice = id === S.plan.best.hub.hub_id ? null : id;
+  renderTarget();
+  togglePicker(false);
+  $('#hospName').focus({preventScroll:true});
+  window.scrollTo({top:0, behavior: reduced() ? 'auto' : 'smooth'});
+  log(S.choice ? `Override: sending ${S.patient.patient_id} to ${target().hub.name} instead of ${S.plan.best.hub.name}.` : 'Back to RUSH\'s pick.');
+}
+function togglePicker(open = $('#picker').hidden) {
+  $('#picker').hidden = !open;
+  $('#pickBtn').setAttribute('aria-expanded', String(open));
+  $('#pickBtn').textContent = open ? 'Close the list' : 'Send somewhere else';
+  if (open) { renderPicker(); cmd('STEP 2 OF 3 · PICK A HOSPITAL', `Tap where it should go. ${K('RUSH PICK')} is the suggestion.`); $('#picker').scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'}); }
+  else if (S.view === 'v2' && S.plan) cmdForView();
+}
+function renderMatch() {
+  const p = S.patient, r = S.plan, best = r.best;
   const src = triageSource(p);
   $('#checkNote').hidden = !src.check;
   $('#checkNote').textContent = src.check ? `⚠ ${src.msg}` : '';
-  $('#whyText').textContent = whyText(p, r, hub, best.n);
-  const v = halifaxVerdict();
-  $('#verdict').innerHTML = v; $('#verdict').hidden = !v;
+  renderTarget();
 
   // details: what the notes say, map, score table
   const list = a => src.mocked || !a || !a.length ? '<span class="muted">None picked out</span>' : a.map(x => `<span class="tag">${esc(x)}</span>`).join('');
   $('#readList').innerHTML = `<dt>Symptoms</dt><dd>${list(p.key_symptoms)}</dd><dt>Risks</dt><dd>${list(p.acute_risks)}</dd><dt>Medications</dt><dd>${list(p.current_medications)}</dd>`;
-  drawMap(hub, false);
+  drawMap(target().hub, false);
   const rows = [...r.ranked, ...r.out];
   $('#scoreRows').innerHTML = rows.map(x => {
     const pick = x.eligible && x === best;
@@ -835,6 +918,7 @@ function renderMatch() {
   const w = WEIGHTS[r.tier];
   $('#scoreNote').textContent = `Score out of 100. At this urgency: specialist free ${w.specialist * 100}%, how full ${w.capacity * 100}%, distance ${w.distance * 100}%.`;
 
+  togglePicker(false);
   $('#sendErr').hidden = true;
   $('#sendBtn').disabled = false; $('#sendBtn').textContent = 'Send referral →';
 }
@@ -926,11 +1010,12 @@ async function sendReferral() {
   $('#sendErr').hidden = true;
   cmd('STEP 2 OF 3', 'Sending the referral', 'busy');
   try {
-    const ref = await api('POST', '/refer', {body:S.patient, timeout:35000});
+    const want = target().hub;
+    const ref = await api('POST', '/refer', {body:S.patient, query: S.choice ? {hub_id:S.choice} : undefined, timeout:35000});
     S.referral = ref;
     renderReceipt(ref);
     show('v3', $('#rcH'));
-    if (ref.target_hub_id !== S.plan.best.hub.hub_id) {
+    if (ref.target_hub_id !== want.hub_id) {
       cmd('DONE · HEADS UP', `Hospitals changed, so it went to ${esc(ref.target_hub_name)}. Hit ${K('NEXT PATIENT')} when ready.`, 'warn');
     }
     log(`Referral ${ref.referral_id} sent to ${ref.target_hub_name}.`);
@@ -954,6 +1039,7 @@ function receiptRows(ref) {
     ['Patient', ref.patient_id],
     ['From', `${ref.referring_clinic_zip}${z ? `, ${z[2]}` : ''}`],
     ['To', ref.target_hub_name],
+    ...(ref.manual_override ? [['Chosen by', `You (RUSH suggested ${ref.suggested_hub_name})`]] : []),
     ['Specialist', s ? s.name : 'Waiting list'],
     ['Urgency', `${ref.urgency_score}/10, ${specLabel(ref.required_specialty)}`],
     ['Distance', `${Number(ref.distance_km).toFixed(0)} km`],
@@ -973,7 +1059,7 @@ async function copyReceipt() {
   catch { $('#rcMsg').textContent = 'Copy didn\'t work here. Select the text instead.'; }
 }
 function newPatient() {
-  S.patient = null; S.plan = null; S.referral = null;
+  S.patient = null; S.plan = null; S.choice = null; S.referral = null;
   $('#notes').value = ''; $('#zip').value = ''; newPid(); updateZipHelp();
   $$('.ex').forEach(b => b.setAttribute('aria-pressed', 'false'));
   $('#findErr').hidden = true;
@@ -981,7 +1067,7 @@ function newPatient() {
   show('v1', $('#notes'));
 }
 function backToNotes() {
-  S.patient = null; S.plan = null;
+  S.patient = null; S.plan = null; S.choice = null;
   renderHospitals();
   show('v1', $('#notes'));
 }
@@ -991,8 +1077,11 @@ function rematch() {                     // on the review screen, re-pick live s
   if (S.view !== 'v2' || !S.patient) return '';
   const before = S.plan.best.hub.hub_id, plan = route(S.patient, S.hubs);
   if (!plan.best) return '';
-  S.plan = plan; renderMatch(); cmdForView();
-  return plan.best.hub.hub_id !== before ? ` The match changed to ${plan.best.hub.name}.` : ' Your patient\'s match didn\'t change.';
+  S.plan = plan;
+  if (S.choice === plan.best.hub.hub_id) S.choice = null;
+  renderMatch(); cmdForView();
+  const what = S.choice ? 'RUSH\'s suggestion' : 'The match';
+  return plan.best.hub.hub_id !== before ? ` ${what} changed to ${plan.best.hub.name}.` : ` ${what} didn't change.`;
 }
 async function surge() {
   if (!S.hubs.length) return;
@@ -1053,9 +1142,12 @@ function boot() {
     $$('.ex').forEach(b => b.setAttribute('aria-pressed', 'false'));
     if (!$('#notesErr').hidden) { $('#notesErr').hidden = true; $('#notes').removeAttribute('aria-invalid'); cmdForView(); }
   });
-  $('#more').addEventListener('toggle', () => { if ($('#more').open && S.plan) drawMap(S.plan.best.hub, true); });
+  $('#more').addEventListener('toggle', () => { if ($('#more').open && S.plan) drawMap(target().hub, true); });
   $('#sendBtn').addEventListener('click', sendReferral);
   $('#backBtn').addEventListener('click', backToNotes);
+  $('#pickBtn').addEventListener('click', () => togglePicker());
+  $('#pickList').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b) choose(b.dataset.id); });
+  $('#overrideNote').addEventListener('click', e => { if (e.target.id === 'useRush') choose(S.plan.best.hub.hub_id); });
   $('#copyBtn').addEventListener('click', copyReceipt);
   $('#printBtn').addEventListener('click', () => window.print());
   $('#newBtn').addEventListener('click', newPatient);

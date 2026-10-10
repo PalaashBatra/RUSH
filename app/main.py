@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uuid
+from typing import Optional
 from datetime import datetime
 
 from app.models.patient import Patient
@@ -107,7 +108,7 @@ async def triage_patient(patient: Patient):
         )
 
 @app.post("/refer", response_model=Referral)
-async def create_referral(patient: Patient, background_tasks: BackgroundTasks):
+async def create_referral(patient: Patient, background_tasks: BackgroundTasks, hub_id: Optional[str] = None):
     """
     Create a new referral and find the optimal healthcare hub.
 
@@ -116,6 +117,9 @@ async def create_referral(patient: Patient, background_tasks: BackgroundTasks):
     2. Constraint-based routing to optimal hub
     3. Specialist assignment
     4. Referral creation with all metadata
+
+    Pass ?hub_id=<HUB_ID> to send the referral to a different hub than the one
+    RUSH suggests. The override and RUSH's suggestion are both kept on the referral.
     """
     try:
         # Step 1: Generate referral ID
@@ -126,7 +130,32 @@ async def create_referral(patient: Patient, background_tasks: BackgroundTasks):
             patient = await triage_service.analyze_clinical_notes(patient)
 
         # Step 3: Find optimal hub using routing engine
-        hub, specialist, routing_score, routing_notes = routing_engine.find_optimal_hub(patient)
+        try:
+            hub, specialist, routing_score, routing_notes = routing_engine.find_optimal_hub(patient)
+        except ValueError:
+            if not hub_id:  # no override to fall back on
+                raise
+            hub, specialist, routing_score, routing_notes = None, None, 0.0, ""
+
+        # Step 3b: Clinician override - send to the hub they picked instead
+        suggested = hub
+        if hub_id and (hub is None or hub_id != hub.hub_id):
+            chosen = routing_engine.get_hub_by_id(hub_id)
+            if not chosen:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Hub {hub_id} not found"
+                )
+            specialty = patient.primary_specialty_required
+            urgency = patient.urgency_score or 5
+            specialist = routing_engine._select_specialist(chosen, specialty, urgency)
+            routing_score, _ = routing_engine._calculate_hub_score(chosen, patient, urgency, specialty)
+            routing_notes = (
+                f"Manually redirected by referring clinician to {chosen.name}"
+                + (f" (RUSH suggested {suggested.name})." if suggested else ".")
+                + ("" if specialty in chosen.specialties else f" Note: {chosen.name} does not list {specialty}.")
+            )
+            hub = chosen
 
         if not hub:
             raise HTTPException(
@@ -152,7 +181,10 @@ async def create_referral(patient: Patient, background_tasks: BackgroundTasks):
             estimated_wait_days=wait_days,
             routing_score=routing_score,
             routing_notes=routing_notes,
-            status=ReferralStatus.ROUTED
+            status=ReferralStatus.ROUTED,
+            manual_override=hub is not suggested,
+            suggested_hub_id=suggested.hub_id if suggested else None,
+            suggested_hub_name=suggested.name if suggested else None,
         )
 
         # Step 6: Store referral
@@ -164,6 +196,8 @@ async def create_referral(patient: Patient, background_tasks: BackgroundTasks):
 
         return referral
 
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

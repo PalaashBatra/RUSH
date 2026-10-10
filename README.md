@@ -73,7 +73,7 @@ RUSH uses AI to:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/triage` | Analyze clinical notes, return urgency and specialty |
-| POST | `/refer` | Create referral with optimal hub routing |
+| POST | `/refer` | Create referral with optimal hub routing (add `?hub_id=HUB_ID` to override the hub; the referral keeps `manual_override` and RUSH's `suggested_hub_*`) |
 | GET | `/referral/{id}` | Check referral status and details |
 
 ### System Monitoring
@@ -133,7 +133,7 @@ Without an API key, triage uses keyword matching and the UI flags every result a
 The black bar at the top always tells you the one thing to do next. Follow it.
 
 1. **Paste the doctor's notes and the clinic postal code, then hit Find hospital.** No notes? Click one of the example chips (or press F1/F2/F3).
-2. **Read the big hospital name. If the bar says "check first", make sure the urgency is right. Then hit Send referral.** Want to see how it decided? Open "Show the map and how every hospital scored".
+2. **Read the big hospital name. If the bar says "check first", make sure the urgency is right. Then hit Send referral.** Want to see how it decided? Open "Show the map and how every hospital scored". Want it to go somewhere else? Hit **Send somewhere else** and tap a hospital; the card switches to "Your pick" and the receipt records what RUSH suggested.
 3. **Done.** Copy or print the receipt, then hit **Next patient**.
 
 `Ctrl + Enter` always presses the big green button. The "Hospital capacity (live)" drawer at the bottom shows how full each hospital is; its **Demo: make a hospital busy** button fills one up so you can watch the match change live.
