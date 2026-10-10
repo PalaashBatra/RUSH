@@ -59,11 +59,13 @@ code{font-family:var(--mono);font-size:.9em;background:rgba(0,0,0,.07);padding:1
 .cmd[data-tone=busy] .cmd-text::after{content:"";display:inline-block;width:.7em;height:.7em;margin-left:.4em;border:4px solid var(--red-lt);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-.05em}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-main{padding:28px 0 60px}
+main.wrap{padding-top:28px;padding-bottom:60px}
 .card{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:24px}
 .card + .card{margin-top:16px}
 
 /* step 1 */
+.why-rush{margin:0 0 16px;padding:0 4px;font-size:17px;line-height:1.45;color:var(--ink-2)}
+.why-rush b{color:var(--ink);font-weight:800}
 .examples{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:20px;font-size:15px}
 .examples > span{font-weight:700;color:var(--ink-2);margin-right:2px}
 .ex{padding:6px 12px 4px;border:1.5px solid var(--rule);border-radius:99px;background:var(--paper);font-weight:700;font-size:15px}
@@ -236,6 +238,7 @@ details.hosp > summary .muted{font-weight:400;font-size:14px;margin-left:6px}
 
   <!-- 1: describe -->
   <section id="v1" aria-label="Describe the patient">
+    <p class="why-rush">Referrals pile up because family doctors send them to the specialists they already know. <b>RUSH sends each one to whoever can see the patient soonest.</b></p>
     <div class="card">
       <div class="examples" role="group" aria-label="Examples">
         <span>No notes? Try one:</span>
